@@ -5,6 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// 正式签名：keystore 由 CI 的 Restore keystore 步骤还原到 android/app/upload-keystore.jks，
+// 密码通过环境变量提供（GitHub Secrets）。keystore 文件与密码都不入库。
+val releaseKeystore = file("upload-keystore.jks")
+
 android {
     namespace = "com.zeekzhao.worthtrack"
     compileSdk = flutter.compileSdkVersion
@@ -20,21 +24,34 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.zeekzhao.worthtrack"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: error("环境变量 KEYSTORE_PASSWORD 缺失：本地发正式包请先设置签名环境变量")
+                keyAlias = System.getenv("KEY_ALIAS") ?: "worthtrack"
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: error("环境变量 KEY_PASSWORD 缺失：本地发正式包请先设置签名环境变量")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // 有正式 keystore 用正式签名，否则退回 debug 签名（仅本地调试用）。
+            signingConfig = if (releaseKeystore.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
