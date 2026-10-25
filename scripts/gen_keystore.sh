@@ -15,6 +15,7 @@ fi
 
 "$HOME/development/jdk-17/bin/keytool" -genkeypair -v \
   -keystore "$KS" -alias worthtrack -keyalg RSA -keysize 2048 -validity 10000 \
+  -storetype JKS \
   -storepass "$WT_KS_PASS" -keypass "$WT_KS_PASS" \
   -dname "CN=WorthTrack, OU=Personal, O=zeekzhao, L=Shanghai, ST=Shanghai, C=CN"
 

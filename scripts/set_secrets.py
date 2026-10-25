@@ -22,7 +22,8 @@ def api(p, data=None, method="GET"):
         method=method,
         headers=H,
     )
-    return json.loads(urllib.request.urlopen(req).read().decode())
+    body = urllib.request.urlopen(req).read().decode()
+    return json.loads(body) if body.strip() else {}
 
 
 def main():
