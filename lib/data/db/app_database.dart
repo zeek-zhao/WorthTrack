@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../dao/account_dao.dart';
+import '../dao/category_dao.dart';
 import '../dao/transaction_dao.dart';
 
 part 'app_database.g.dart';
@@ -48,6 +49,10 @@ class Categories extends Table {
   IntColumn get kind => intEnum<CategoryKind>()();
   TextColumn get icon => text().nullable()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 父分类 id（null = 一级分类）。二级分类最多一层。
+  IntColumn get parentId => integer().nullable().references(Categories, #id)();
+
   DateTimeColumn get archivedAt => dateTime().nullable()();
 }
 
@@ -151,7 +156,7 @@ class PriceCache extends Table {
     Positions,
     PriceCache,
   ],
-  daos: [AccountDao, TransactionDao],
+  daos: [AccountDao, TransactionDao, CategoryDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);

@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 
 import 'data/db/app_database.dart';
 import 'data/repositories/account_repository_impl.dart';
+import 'data/repositories/category_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
+import 'domain/repositories/category_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 
 /// 全局数据库单例。
@@ -28,6 +30,11 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   return TransactionRepositoryImpl(
     ref.watch(appDatabaseProvider).transactionDao,
   );
+});
+
+/// 分类仓储。
+final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
+  return CategoryRepositoryImpl(ref.watch(appDatabaseProvider).categoryDao);
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。
