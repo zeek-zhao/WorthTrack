@@ -1,0 +1,42 @@
+# WorthTrack .gitignore — Flutter + WSL 项目
+
+# --- WorkBuddy / 本地工具 ---
+.workbuddy/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+
+# --- Flutter/Dart ---
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+coverage/
+drift_db.g.dart
+*.g.dart.tmp
+
+# --- Android ---
+android/.gradle/
+android/local.properties
+android/key.properties
+**/android/key.properties
+*.jks
+*.keystore
+!debug.keystore
+
+# --- Linux/Windows desktop 临时 ---
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# --- 测试与集成测试产物 ---
+test/failures/
+integration_test/.dart_tool/
+
+# --- 日志与临时 ---
+*.log
+.DS_Store
