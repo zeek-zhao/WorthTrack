@@ -21,6 +21,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.35.4 # 与本地 WSL 开发环境一致（dart format 规则随版本变化，必须钉死）
           cache: true
 
       - name: Verify formatting (hard gate)
@@ -56,6 +57,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.35.4 # 与 quality job 保持一致
           cache: true
 
       # keystore 通过 GitHub Secrets 提供：KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
