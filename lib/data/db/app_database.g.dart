@@ -574,6 +574,20 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<int> parentId = GeneratedColumn<int>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id)',
+    ),
+  );
   static const VerificationMeta _archivedAtMeta = const VerificationMeta(
     'archivedAt',
   );
@@ -592,6 +606,7 @@ class $CategoriesTable extends Categories
     kind,
     icon,
     sortOrder,
+    parentId,
     archivedAt,
   ];
   @override
@@ -627,6 +642,12 @@ class $CategoriesTable extends Categories
       context.handle(
         _sortOrderMeta,
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
       );
     }
     if (data.containsKey('archived_at')) {
@@ -666,6 +687,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parent_id'],
+      ),
       archivedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}archived_at'],
@@ -688,6 +713,9 @@ class Category extends DataClass implements Insertable<Category> {
   final CategoryKind kind;
   final String? icon;
   final int sortOrder;
+
+  /// 父分类 id（null = 一级分类）。二级分类最多一层。
+  final int? parentId;
   final DateTime? archivedAt;
   const Category({
     required this.id,
@@ -695,6 +723,7 @@ class Category extends DataClass implements Insertable<Category> {
     required this.kind,
     this.icon,
     required this.sortOrder,
+    this.parentId,
     this.archivedAt,
   });
   @override
@@ -709,6 +738,9 @@ class Category extends DataClass implements Insertable<Category> {
       map['icon'] = Variable<String>(icon);
     }
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<int>(parentId);
+    }
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<DateTime>(archivedAt);
     }
@@ -722,6 +754,9 @@ class Category extends DataClass implements Insertable<Category> {
       kind: Value(kind),
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       sortOrder: Value(sortOrder),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(archivedAt),
@@ -741,6 +776,7 @@ class Category extends DataClass implements Insertable<Category> {
       ),
       icon: serializer.fromJson<String?>(json['icon']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      parentId: serializer.fromJson<int?>(json['parentId']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
     );
   }
@@ -755,6 +791,7 @@ class Category extends DataClass implements Insertable<Category> {
       ),
       'icon': serializer.toJson<String?>(icon),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'parentId': serializer.toJson<int?>(parentId),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
     };
   }
@@ -765,6 +802,7 @@ class Category extends DataClass implements Insertable<Category> {
     CategoryKind? kind,
     Value<String?> icon = const Value.absent(),
     int? sortOrder,
+    Value<int?> parentId = const Value.absent(),
     Value<DateTime?> archivedAt = const Value.absent(),
   }) => Category(
     id: id ?? this.id,
@@ -772,6 +810,7 @@ class Category extends DataClass implements Insertable<Category> {
     kind: kind ?? this.kind,
     icon: icon.present ? icon.value : this.icon,
     sortOrder: sortOrder ?? this.sortOrder,
+    parentId: parentId.present ? parentId.value : this.parentId,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
@@ -781,6 +820,7 @@ class Category extends DataClass implements Insertable<Category> {
       kind: data.kind.present ? data.kind.value : this.kind,
       icon: data.icon.present ? data.icon.value : this.icon,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
           : this.archivedAt,
@@ -795,13 +835,15 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('kind: $kind, ')
           ..write('icon: $icon, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('parentId: $parentId, ')
           ..write('archivedAt: $archivedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, kind, icon, sortOrder, archivedAt);
+  int get hashCode =>
+      Object.hash(id, name, kind, icon, sortOrder, parentId, archivedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -811,6 +853,7 @@ class Category extends DataClass implements Insertable<Category> {
           other.kind == this.kind &&
           other.icon == this.icon &&
           other.sortOrder == this.sortOrder &&
+          other.parentId == this.parentId &&
           other.archivedAt == this.archivedAt);
 }
 
@@ -820,6 +863,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<CategoryKind> kind;
   final Value<String?> icon;
   final Value<int> sortOrder;
+  final Value<int?> parentId;
   final Value<DateTime?> archivedAt;
   const CategoriesCompanion({
     this.id = const Value.absent(),
@@ -827,6 +871,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.kind = const Value.absent(),
     this.icon = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.parentId = const Value.absent(),
     this.archivedAt = const Value.absent(),
   });
   CategoriesCompanion.insert({
@@ -835,6 +880,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     required CategoryKind kind,
     this.icon = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.parentId = const Value.absent(),
     this.archivedAt = const Value.absent(),
   }) : name = Value(name),
        kind = Value(kind);
@@ -844,6 +890,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<int>? kind,
     Expression<String>? icon,
     Expression<int>? sortOrder,
+    Expression<int>? parentId,
     Expression<DateTime>? archivedAt,
   }) {
     return RawValuesInsertable({
@@ -852,6 +899,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (kind != null) 'kind': kind,
       if (icon != null) 'icon': icon,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (parentId != null) 'parent_id': parentId,
       if (archivedAt != null) 'archived_at': archivedAt,
     });
   }
@@ -862,6 +910,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<CategoryKind>? kind,
     Value<String?>? icon,
     Value<int>? sortOrder,
+    Value<int?>? parentId,
     Value<DateTime?>? archivedAt,
   }) {
     return CategoriesCompanion(
@@ -870,6 +919,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       kind: kind ?? this.kind,
       icon: icon ?? this.icon,
       sortOrder: sortOrder ?? this.sortOrder,
+      parentId: parentId ?? this.parentId,
       archivedAt: archivedAt ?? this.archivedAt,
     );
   }
@@ -894,6 +944,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (parentId.present) {
+      map['parent_id'] = Variable<int>(parentId.value);
+    }
     if (archivedAt.present) {
       map['archived_at'] = Variable<DateTime>(archivedAt.value);
     }
@@ -908,6 +961,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('kind: $kind, ')
           ..write('icon: $icon, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('parentId: $parentId, ')
           ..write('archivedAt: $archivedAt')
           ..write(')'))
         .toString();
@@ -3432,6 +3486,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final TransactionDao transactionDao = TransactionDao(
     this as AppDatabase,
   );
+  late final CategoryDao categoryDao = CategoryDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3815,6 +3870,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required CategoryKind kind,
       Value<String?> icon,
       Value<int> sortOrder,
+      Value<int?> parentId,
       Value<DateTime?> archivedAt,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
@@ -3824,12 +3880,32 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<CategoryKind> kind,
       Value<String?> icon,
       Value<int> sortOrder,
+      Value<int?> parentId,
       Value<DateTime?> archivedAt,
     });
 
 final class $$CategoriesTableReferences
     extends BaseReferences<_$AppDatabase, $CategoriesTable, Category> {
   $$CategoriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CategoriesTable _parentIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(db.categories.parentId, db.categories.id),
+      );
+
+  $$CategoriesTableProcessedTableManager? get parentId {
+    final $_column = $_itemColumn<int>('parent_id');
+    if ($_column == null) return null;
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_parentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
   _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -3932,6 +4008,29 @@ class $$CategoriesTableFilterComposer
     column: $table.archivedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$CategoriesTableFilterComposer get parentId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> transactionsRefs(
     Expression<bool> Function($$TransactionsTableFilterComposer f) f,
@@ -4047,6 +4146,29 @@ class $$CategoriesTableOrderingComposer
     column: $table.archivedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$CategoriesTableOrderingComposer get parentId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -4077,6 +4199,29 @@ class $$CategoriesTableAnnotationComposer
     column: $table.archivedAt,
     builder: (column) => column,
   );
+
+  $$CategoriesTableAnnotationComposer get parentId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -4168,6 +4313,7 @@ class $$CategoriesTableTableManager
           (Category, $$CategoriesTableReferences),
           Category,
           PrefetchHooks Function({
+            bool parentId,
             bool transactionsRefs,
             bool budgetsRefs,
             bool recurringRulesRefs,
@@ -4191,6 +4337,7 @@ class $$CategoriesTableTableManager
                 Value<CategoryKind> kind = const Value.absent(),
                 Value<String?> icon = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int?> parentId = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
@@ -4198,6 +4345,7 @@ class $$CategoriesTableTableManager
                 kind: kind,
                 icon: icon,
                 sortOrder: sortOrder,
+                parentId: parentId,
                 archivedAt: archivedAt,
               ),
           createCompanionCallback:
@@ -4207,6 +4355,7 @@ class $$CategoriesTableTableManager
                 required CategoryKind kind,
                 Value<String?> icon = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int?> parentId = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
@@ -4214,6 +4363,7 @@ class $$CategoriesTableTableManager
                 kind: kind,
                 icon: icon,
                 sortOrder: sortOrder,
+                parentId: parentId,
                 archivedAt: archivedAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -4226,6 +4376,7 @@ class $$CategoriesTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                parentId = false,
                 transactionsRefs = false,
                 budgetsRefs = false,
                 recurringRulesRefs = false,
@@ -4237,7 +4388,39 @@ class $$CategoriesTableTableManager
                     if (budgetsRefs) db.budgets,
                     if (recurringRulesRefs) db.recurringRules,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (parentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.parentId,
+                                    referencedTable: $$CategoriesTableReferences
+                                        ._parentIdTable(db),
+                                    referencedColumn:
+                                        $$CategoriesTableReferences
+                                            ._parentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (transactionsRefs)
@@ -4324,6 +4507,7 @@ typedef $$CategoriesTableProcessedTableManager =
       (Category, $$CategoriesTableReferences),
       Category,
       PrefetchHooks Function({
+        bool parentId,
         bool transactionsRefs,
         bool budgetsRefs,
         bool recurringRulesRefs,
