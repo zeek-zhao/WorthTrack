@@ -6,3 +6,4 @@
 |---|---|---|---|---|
 | 2026-10-25 | 项目初始化：README、.gitignore、CI 流水线、PR/issue 模板、issues-backlog、本文件 | README.md, .gitignore, .github/**, docs/** | 按已定稿的项目计划（wiki/项目计划与里程碑）建立工程基建；CI 硬门槛是「保证 AI 代码质量」的核心机制，先于业务代码落地 | 本地 git 提交 + SSH 推送成功；CI workflow 首次跑通待 Flutter 项目落地后确认 |
 | 2026-10-25 | 需求规格与项目计划定稿（grill-me 7 分支）| wiki: Home/需求规格-v1.0/项目计划与里程碑/_Sidebar | 记账+A股投资跟踪；Drift+SQLite；Riverpod 三层；CI 硬门槛+碰钱路径集成测试；tag 触发签名 Release | 决策经用户逐项确认 |
+| 2026-10-25 | GitHub 工程化：22 条 issue（#1-#22，M1-M4 标签）+ labels 创建；Projects 看板脚本备好（GraphQL createProjectV2 被 403，token 缺 Projects 权限待补）；Flutter SDK 3.35.4 后台下载至 WSL | scripts/create_issues.py, scripts/create_project_board.py | issue 用标签分组代替 Milestone（REST 无 milestone 创建通道）；token 存 WSL ~/.config/worthtrack/gh_token (600) | issues 22/22 创建成功；看板创建失败已定位原因 |
