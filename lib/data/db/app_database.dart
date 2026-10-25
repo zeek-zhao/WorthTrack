@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
 import '../dao/account_dao.dart';
+import '../dao/budget_dao.dart';
 import '../dao/category_dao.dart';
+import '../dao/recurring_dao.dart';
 import '../dao/transaction_dao.dart';
 
 part 'app_database.g.dart';
@@ -156,7 +158,7 @@ class PriceCache extends Table {
     Positions,
     PriceCache,
   ],
-  daos: [AccountDao, TransactionDao, CategoryDao],
+  daos: [AccountDao, TransactionDao, CategoryDao, BudgetDao, RecurringDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);

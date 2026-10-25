@@ -1,16 +1,35 @@
 import '../../../data/db/app_database.dart';
 import '../../../data/dao/transaction_dao.dart';
+import '../stats.dart';
 
 /// 交易领域接口。
 abstract class TransactionRepository {
   /// 监听最近交易（倒序）。
   Stream<List<Transaction>> watchRecent({int limit});
 
-  /// 监听指定月份交易，可按账户/分类过滤。
-  Stream<List<Transaction>> watchByMonth(
+  /// 按组合条件过滤交易（关键词/类型/账户/分类/时间区间）。
+  Stream<List<Transaction>> watchByFilter(TxnFilter filter);
+
+  /// 监听指定月份收支汇总（转账不计入）。
+  Stream<MonthTotals> watchMonthTotals(DateTime month);
+
+  /// 监听整年收支汇总。
+  Stream<MonthTotals> watchYearTotals(int year);
+
+  /// 监听最近 [months] 个月（截至 [anchor] 当月）的逐月收支趋势。
+  Stream<List<MonthTotals>> watchTrend({int months, DateTime? anchor});
+
+  /// 监听指定月份按分类聚合统计（支出/收入）。
+  Stream<List<CategoryStat>> watchCategoryStats(
     DateTime month, {
-    int? accountId,
-    int? categoryId,
+    CategoryKind kind,
+  });
+
+  /// 任意区间的分类聚合统计（年度报表用）。
+  Stream<List<CategoryStat>> watchCategoryStatsRange(
+    DateTime start,
+    DateTime end, {
+    CategoryKind kind,
   });
 
   /// 记账并原子调整账户余额，返回交易 id。
