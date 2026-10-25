@@ -48,9 +48,11 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     final start = DateTime(month.year, month.month);
     final end = DateTime(month.year, month.month + 1);
     return (select(transactions)
-          ..where((t) =>
-              t.occurredAt.isBiggerOrEqualValue(start) &
-              t.occurredAt.isSmallerThanValue(end))
+          ..where(
+            (t) =>
+                t.occurredAt.isBiggerOrEqualValue(start) &
+                t.occurredAt.isSmallerThanValue(end),
+          )
           ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]))
         .watch();
   }
