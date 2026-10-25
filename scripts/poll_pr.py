@@ -35,7 +35,7 @@ def main():
                 flush=True,
             )
             if len(done) == len(checks):
-                if all(c["conclusion"] == "success" for c in checks):
+                if all(c["conclusion"] in ("success", "skipped") for c in checks):
                     call(
                         f"/pulls/{pr_no}/merge",
                         {"merge_method": "merge", "sha": sha},

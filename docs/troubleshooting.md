@@ -43,6 +43,20 @@
 - **解决**：release job 加 `permissions: contents: write`。注意：**permissions 修改对已存在的 tag 不回溯生效**，需要删 tag 重打才会用新配置跑。
 - **预防**：改动 workflow 权限后，必须重新触发一次完整流水线验证，不能只看语法。
 
+### 1.5 多个集成测试文件时，第二个文件的应用启动稳定失败
+
+- **现象**：`xvfb-run flutter test integration_test` 下，第一个文件 3 条用例全过，第二个文件报 `Error waiting for a debug connection: The log reader stopped unexpectedly`，稳定复现（2/2），与测试内容无关。
+- **根因**：每个集成测试文件都要独立构建并启动一次 Linux host 应用；本 CI 环境（xvfb 虚拟显示）下第二次启动不可用，具体机制未深究。
+- **解决**：所有集成用例合并进单文件 `integration_test/money_paths_test.dart`，一次应用启动跑完全部碰钱路径。
+- **预防**：M2 起集成测试**只允许一个文件**；新增碰钱路径用例往 money_paths_test.dart 里追加 testWidgets。
+
+### 1.6 check-runs 里 skipped 的 job 让自动化轮询误判"CI 失败"
+
+- **现象**：PR 上 quality job 全绿，轮询脚本却报 `Build & Release=skipped ... CI FAILED` 并退出。
+- **根因**：`/commits/{sha}/check-runs` 会把 tag 专属的 release job 也列进来（在 PR 上结论是 skipped）；脚本用 `all(conclusion == "success")` 判断。
+- **解决**：`scripts/poll_pr.py` 判定改为 success/skipped 均视为通过（release job 只在 tag 上运行）。
+- **预防**：基于 check-runs 的自动化必须显式处理 `skipped`/`neutral` 结论。
+
 ## 2. Drift / 数据库
 
 ### 2.1 intEnum 列在生成代码里静默丢失（最高优先级陷阱）
