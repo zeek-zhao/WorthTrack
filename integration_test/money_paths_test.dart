@@ -27,7 +27,7 @@ void main() {
 
   testWidgets('建账户 → 记支出 → 余额变化正确', (tester) async {
     final accountId = await db.accountDao.createAccount(
-      const AccountsCompanion.insert(
+      AccountsCompanion.insert(
         name: '现金钱包',
         type: AccountType.cash,
         balanceMinor: Value(100000), // ¥1000.00
@@ -61,7 +61,7 @@ void main() {
       ),
     );
     final to = await db.accountDao.createAccount(
-      const AccountsCompanion.insert(name: '零钱', type: AccountType.cash),
+      AccountsCompanion.insert(name: '零钱', type: AccountType.cash),
     );
 
     await db.transactionDao.createWithBalanceUpdate(
@@ -88,7 +88,6 @@ void main() {
         balanceMinor: const Value(0),
       ),
     );
-
     final incomeId = await db.transactionDao.createWithBalanceUpdate(
       NewTransaction(
         type: TxnType.income,
