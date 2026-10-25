@@ -43,4 +43,40 @@ class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
       AccountsCompanion(balanceMinor: Value(newBalanceMinor)),
     );
   }
+
+  /// 更新账户基本信息（名称/备注/排序）。
+  Future<void> updateAccount(int id, AccountsCompanion entry) {
+    return (update(accounts)..where((a) => a.id.equals(id))).write(entry);
+  }
+
+  /// 恢复归档账户。
+  Future<void> unarchiveAccount(int id) {
+    return (update(accounts)..where((a) => a.id.equals(id))).write(
+      const AccountsCompanion(archivedAt: Value(null)),
+    );
+  }
+
+  /// 监听总资产：所有未归档账户余额之和（实时）。
+  Stream<int> watchTotalBalanceMinor() {
+    final sum = accounts.balanceMinor.sum();
+    final query = selectOnly(accounts)
+      ..addColumns([sum])
+      ..where(accounts.archivedAt.isNull());
+    return query.watchSingle().map((row) => row.read(sum) ?? 0);
+  }
+
+  /// 监听各类型账户的余额汇总（未归档，实时）。
+  ///
+  /// 账户表行数很小，Dart 端聚合即可；避免 selectOnly 与
+  /// type converter（GeneratedColumnWithTypeConverter）的兼容问题。
+  Stream<Map<AccountType, int>> watchBalanceByType() {
+    final query = select(accounts)..where((a) => a.archivedAt.isNull());
+    return query.watch().map((rows) {
+      final map = <AccountType, int>{};
+      for (final a in rows) {
+        map[a.type] = (map[a.type] ?? 0) + a.balanceMinor;
+      }
+      return map;
+    });
+  }
 }

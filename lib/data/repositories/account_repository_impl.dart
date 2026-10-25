@@ -35,4 +35,29 @@ class AccountRepositoryImpl implements AccountRepository {
 
   @override
   Future<void> archiveAccount(int id) => _dao.archiveAccount(id);
+
+  @override
+  Future<void> updateAccount({
+    required int id,
+    String? name,
+    String? note,
+    int? sortOrder,
+  }) {
+    final companion = AccountsCompanion(
+      name: name == null ? const Value.absent() : Value(name),
+      note: note == null ? const Value.absent() : Value(note),
+      sortOrder: sortOrder == null ? const Value.absent() : Value(sortOrder),
+    );
+    return _dao.updateAccount(id, companion);
+  }
+
+  @override
+  Future<void> unarchiveAccount(int id) => _dao.unarchiveAccount(id);
+
+  @override
+  Stream<int> watchTotalBalanceMinor() => _dao.watchTotalBalanceMinor();
+
+  @override
+  Stream<Map<AccountType, int>> watchBalanceByType() =>
+      _dao.watchBalanceByType();
 }
