@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'accounts/accounts_page.dart';
+import 'reports/reports_page.dart';
 import 'transactions/transactions_page.dart';
 
-/// 应用首页：底部导航（明细 / 资产）。
-/// 报表、设置在 M2 加入，届时扩展 tabs。
+/// 应用首页：底部导航（明细 / 报表 / 资产）。
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -21,7 +21,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [TransactionsPage(), AccountsPage()],
+        children: const [TransactionsPage(), ReportsPage(), AccountsPage()],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
@@ -31,6 +31,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: '明细',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pie_chart_outline),
+            selectedIcon: Icon(Icons.pie_chart),
+            label: '报表',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),

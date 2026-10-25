@@ -1,6 +1,7 @@
 import '../dao/transaction_dao.dart';
 import '../db/app_database.dart';
 import '../../domain/repositories/transaction_repository.dart';
+import '../../domain/stats.dart';
 
 /// [TransactionRepository] 的 Drift 实现。
 class TransactionRepositoryImpl implements TransactionRepository {
@@ -13,11 +14,32 @@ class TransactionRepositoryImpl implements TransactionRepository {
       _dao.watchRecent(limit: limit);
 
   @override
-  Stream<List<Transaction>> watchByMonth(
+  Stream<List<Transaction>> watchByFilter(TxnFilter filter) =>
+      _dao.watchByFilter(filter);
+
+  @override
+  Stream<MonthTotals> watchMonthTotals(DateTime month) =>
+      _dao.watchMonthTotals(month);
+
+  @override
+  Stream<MonthTotals> watchYearTotals(int year) => _dao.watchYearTotals(year);
+
+  @override
+  Stream<List<MonthTotals>> watchTrend({int months = 6, DateTime? anchor}) =>
+      _dao.watchTrend(months: months, anchor: anchor);
+
+  @override
+  Stream<List<CategoryStat>> watchCategoryStats(
     DateTime month, {
-    int? accountId,
-    int? categoryId,
-  }) => _dao.watchByMonth(month, accountId: accountId, categoryId: categoryId);
+    CategoryKind kind = CategoryKind.expense,
+  }) => _dao.watchCategoryStats(month, kind: kind);
+
+  @override
+  Stream<List<CategoryStat>> watchCategoryStatsRange(
+    DateTime start,
+    DateTime end, {
+    CategoryKind kind = CategoryKind.expense,
+  }) => _dao.watchCategoryStatsRange(start, end, kind: kind);
 
   @override
   Future<int> addTransaction(NewTransaction input) =>

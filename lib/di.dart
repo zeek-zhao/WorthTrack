@@ -7,10 +7,14 @@ import 'package:path_provider/path_provider.dart';
 
 import 'data/db/app_database.dart';
 import 'data/repositories/account_repository_impl.dart';
+import 'data/repositories/budget_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
+import 'data/repositories/recurring_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
+import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
+import 'domain/repositories/recurring_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 
 /// 全局数据库单例。
@@ -35,6 +39,18 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 /// 分类仓储。
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   return CategoryRepositoryImpl(ref.watch(appDatabaseProvider).categoryDao);
+});
+
+/// 预算仓储。
+final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return BudgetRepositoryImpl(db.budgetDao, db.transactionDao);
+});
+
+/// 周期账单仓储。
+final recurringRepositoryProvider = Provider<RecurringRepository>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return RecurringRepositoryImpl(db.recurringDao, db.transactionDao);
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。

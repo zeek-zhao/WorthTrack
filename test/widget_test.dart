@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/app.dart';
@@ -10,38 +11,53 @@ void main() {
   late FakeAccountRepository accountRepo;
   late FakeCategoryRepository categoryRepo;
   late FakeTransactionRepository txnRepo;
+  late FakeBudgetRepository budgetRepo;
+  late FakeRecurringRepository recurringRepo;
 
   setUp(() {
     accountRepo = FakeAccountRepository();
     categoryRepo = FakeCategoryRepository();
     txnRepo = FakeTransactionRepository();
+    budgetRepo = FakeBudgetRepository();
+    recurringRepo = FakeRecurringRepository();
   });
 
   tearDown(() {
     accountRepo.dispose();
     categoryRepo.dispose();
     txnRepo.dispose();
+    budgetRepo.dispose();
+    recurringRepo.dispose();
   });
 
-  testWidgets('应用启动进入底部导航（明细/资产），真实 DI 被假仓储覆盖', (tester) async {
+  testWidgets('应用启动进入底部导航（明细/报表/资产），真实 DI 被假仓储覆盖', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           accountRepositoryProvider.overrideWithValue(accountRepo),
           categoryRepositoryProvider.overrideWithValue(categoryRepo),
           transactionRepositoryProvider.overrideWithValue(txnRepo),
+          budgetRepositoryProvider.overrideWithValue(budgetRepo),
+          recurringRepositoryProvider.overrideWithValue(recurringRepo),
         ],
         child: const WorthTrackApp(),
       ),
     );
     accountRepo.emit([]);
+    categoryRepo.emit([]);
     txnRepo.emit([]);
     await tester.pumpAndSettle();
 
-    // 底部导航两页签 + 明细页空态提示。
+    // 底部导航三页签 + 明细页空态提示。
     expect(find.text('明细'), findsOneWidget);
+    expect(find.text('报表'), findsOneWidget);
     expect(find.text('资产'), findsOneWidget);
     expect(find.text('本月暂无交易，点 + 记一笔'), findsOneWidget);
+
+    // 切到报表页。
+    await tester.tap(find.text('报表'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('report_summary')), findsOneWidget);
 
     // 切到资产页。
     await tester.tap(find.text('资产'));
