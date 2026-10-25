@@ -4,29 +4,48 @@ import 'package:worthtrack/app.dart';
 import 'package:worthtrack/di.dart';
 
 import 'helpers/fake_account_repository.dart';
+import 'helpers/fake_transaction_repository.dart';
 
 void main() {
-  late FakeAccountRepository fake;
+  late FakeAccountRepository accountRepo;
+  late FakeCategoryRepository categoryRepo;
+  late FakeTransactionRepository txnRepo;
 
   setUp(() {
-    fake = FakeAccountRepository();
+    accountRepo = FakeAccountRepository();
+    categoryRepo = FakeCategoryRepository();
+    txnRepo = FakeTransactionRepository();
   });
 
   tearDown(() {
-    fake.dispose();
+    accountRepo.dispose();
+    categoryRepo.dispose();
+    txnRepo.dispose();
   });
 
-  testWidgets('应用启动进入资产页（真实 DI 被假仓储覆盖）', (tester) async {
+  testWidgets('应用启动进入底部导航（明细/资产），真实 DI 被假仓储覆盖', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [accountRepositoryProvider.overrideWithValue(fake)],
+        overrides: [
+          accountRepositoryProvider.overrideWithValue(accountRepo),
+          categoryRepositoryProvider.overrideWithValue(categoryRepo),
+          transactionRepositoryProvider.overrideWithValue(txnRepo),
+        ],
         child: const WorthTrackApp(),
       ),
     );
-    fake.emit([]);
+    accountRepo.emit([]);
+    txnRepo.emit([]);
     await tester.pumpAndSettle();
 
-    expect(find.text('WorthTrack'), findsOneWidget);
+    // 底部导航两页签 + 明细页空态提示。
+    expect(find.text('明细'), findsOneWidget);
+    expect(find.text('资产'), findsOneWidget);
+    expect(find.text('本月暂无交易，点 + 记一笔'), findsOneWidget);
+
+    // 切到资产页。
+    await tester.tap(find.text('资产'));
+    await tester.pumpAndSettle();
     expect(find.text('总资产'), findsOneWidget);
   });
 }

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/domain/repositories/account_repository.dart';
 
+import 'fake_transaction_repository.dart' show replayStream;
+
 /// 内存假实现：驱动 UI 测试，不依赖数据库。
 class FakeAccountRepository implements AccountRepository {
   final _controller = StreamController<List<Account>>.broadcast();
@@ -16,7 +18,7 @@ class FakeAccountRepository implements AccountRepository {
   }
 
   @override
-  Stream<List<Account>> watchAccounts() => _controller.stream;
+  Stream<List<Account>> watchAccounts() => replayStream(_accounts, _controller);
 
   @override
   Future<Account?> getById(int id) async {
@@ -62,13 +64,13 @@ class FakeAccountRepository implements AccountRepository {
   Future<void> unarchiveAccount(int id) async {}
 
   @override
-  Stream<int> watchTotalBalanceMinor() => _controller.stream.map(
+  Stream<int> watchTotalBalanceMinor() => watchAccounts().map(
     (list) => list.fold<int>(0, (sum, a) => sum + a.balanceMinor),
   );
 
   @override
   Stream<Map<AccountType, int>> watchBalanceByType() =>
-      _controller.stream.map((list) {
+      watchAccounts().map((list) {
         final map = <AccountType, int>{};
         for (final a in list) {
           map[a.type] = (map[a.type] ?? 0) + a.balanceMinor;
