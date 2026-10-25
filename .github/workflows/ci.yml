@@ -10,8 +10,6 @@ jobs:
   quality:
     name: format / analyze / test
     runs-on: ubuntu-latest
-    # Flutter 项目落地后自动启用（pubspec.yaml 存在才跑）
-    if: ${{ hashFiles('**/pubspec.yaml') != '' }}
     steps:
       - uses: actions/checkout@v4
 
