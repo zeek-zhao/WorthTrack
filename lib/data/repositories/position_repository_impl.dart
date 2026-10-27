@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../core/stream_utils.dart';
 import '../../domain/position_valuation.dart';
+import '../../domain/price_provider.dart';
 import '../../domain/repositories/position_repository.dart';
 import '../dao/position_dao.dart';
 import '../db/app_database.dart';
@@ -9,9 +10,10 @@ import '../db/app_database.dart';
 /// [PositionRepository] 的 Drift 实现：
 /// 持仓流 × 价格缓存流 → 估值流（Dart 端组合，避免 join 与 intEnum 的坑）。
 class PositionRepositoryImpl implements PositionRepository {
-  PositionRepositoryImpl(this._dao);
+  PositionRepositoryImpl(this._dao, this._priceProvider);
 
   final PositionDao _dao;
+  final PriceProvider _priceProvider;
 
   @override
   Stream<List<PositionValuation>> watchValuations({
@@ -88,5 +90,54 @@ class PositionRepositoryImpl implements PositionRepository {
     required int priceMinor,
   }) {
     return _dao.upsertPrice(positionSymbol(market, code), priceMinor);
+  }
+
+  @override
+  Future<PriceRefreshReport> refreshPrices() async {
+    final positions = await _dao.getActivePositions();
+    if (positions.isEmpty) return PriceRefreshReport.empty;
+    final symbols = [
+      for (final p in positions) positionSymbol(p.market, p.code),
+    ];
+
+    final Map<String, Quote> quotes;
+    try {
+      quotes = await _priceProvider.fetchQuotes(symbols);
+    } on Exception {
+      // 整批失败：一条缓存都不动，交给 #15 的缓存价兜底。
+      return PriceRefreshReport(
+        updated: 0,
+        suspended: 0,
+        notFound: 0,
+        failed: symbols.length,
+      );
+    }
+
+    var updated = 0;
+    var suspended = 0;
+    var notFound = 0;
+    var failed = 0;
+    for (final symbol in symbols) {
+      final quote = quotes[symbol];
+      if (quote == null) {
+        failed++;
+        continue;
+      }
+      switch (quote.status) {
+        case QuoteStatus.ok:
+          await _dao.upsertPrice(symbol, quote.priceMinor!, at: quote.quotedAt);
+          updated++;
+        case QuoteStatus.suspended:
+          suspended++;
+        case QuoteStatus.notFound:
+          notFound++;
+      }
+    }
+    return PriceRefreshReport(
+      updated: updated,
+      suspended: suspended,
+      notFound: notFound,
+      failed: failed,
+    );
   }
 }

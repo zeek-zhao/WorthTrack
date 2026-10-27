@@ -2,9 +2,17 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/data/repositories/position_repository_impl.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 import 'package:worthtrack/domain/repositories/position_repository.dart';
 
 import '../helpers/sqlite3_loader.dart';
+
+/// 本文件不测行情，行情源用空实现占位。
+class _NoopPriceProvider implements PriceProvider {
+  @override
+  Future<Map<String, Quote>> fetchQuotes(List<String> symbols) async =>
+      const {};
+}
 
 /// issue #13 验收：持仓 CRUD + 价格缓存 → 估值流（真 Drift 内存库）。
 void main() {
@@ -15,7 +23,7 @@ void main() {
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
-    repo = PositionRepositoryImpl(db.positionDao);
+    repo = PositionRepositoryImpl(db.positionDao, _NoopPriceProvider());
   });
 
   tearDown(() async {

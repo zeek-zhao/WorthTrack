@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'data/db/app_database.dart';
+import 'data/price/tencent_price_provider.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/budget_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
@@ -15,6 +17,7 @@ import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
+import 'domain/price_provider.dart';
 import 'domain/repositories/position_repository.dart';
 import 'domain/repositories/recurring_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
@@ -55,9 +58,19 @@ final recurringRepositoryProvider = Provider<RecurringRepository>((ref) {
   return RecurringRepositoryImpl(db.recurringDao, db.transactionDao);
 });
 
+/// 行情源（M3-#14）：腾讯财经公开接口，无需 key。
+final priceProviderProvider = Provider<PriceProvider>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return TencentPriceProvider(client: client);
+});
+
 /// 持仓仓储。
 final positionRepositoryProvider = Provider<PositionRepository>((ref) {
-  return PositionRepositoryImpl(ref.watch(appDatabaseProvider).positionDao);
+  return PositionRepositoryImpl(
+    ref.watch(appDatabaseProvider).positionDao,
+    ref.watch(priceProviderProvider),
+  );
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。
