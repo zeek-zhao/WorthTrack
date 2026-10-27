@@ -87,6 +87,20 @@
 - **解决**：改为普通 `select` 拉行后在 Dart 端聚合（账户表行数很小，性能无影响）。
 - **预防**：涉及枚举列的统计优先 Dart 端聚合；纯数值列的 SQL 聚合（如 sum 余额）不受影响，可继续用 `selectOnly`。
 
+### 2.5 新增 DAO 只建文件不注册 → 库上没有 xxxDao getter
+
+- **现象**：新建 `position_dao.dart` 并跑完 `build_runner`，代码里 `db.positionDao` 报「未定义」；`build_runner` 输出 **EXIT=0 且无报错**，`position_dao.g.dart` 也正常生成（mixin 有了），只有 `app_database.g.dart` 里少了 `late final PositionDao positionDao = ...`。
+- **根因**：DAO getter 是由 `@DriftDatabase(daos: [...])` 列表驱动生成的；只写 `@DriftAccessor` 只会生成 mixin，不会往 `AppDatabase` 上挂 getter。生成器对「孤儿 DAO」不告警。
+- **解决**：把 `PositionDao` 加进 `app_database.dart` 的 `daos:` 列表（并 import），重跑 `build_runner`，确认 `.g.dart` 里出现 `late final PositionDao positionDao`。
+- **预防**：新增 DAO 的检查清单 = ① 文件带 `part 'x_dao.g.dart'` ② 类带 `@DriftAccessor(tables: [...])` ③ **`@DriftDatabase(daos:)` 里注册** ④ 重跑生成后 grep 一下 `.g.dart` 确认 getter 存在。
+
+### 2.6 自定义主键表生成的行类名不是表名
+
+- **现象**：`PriceCache` 表（`primaryKey => {symbol}`，无 autoIncrement id）生成的行类是 **`PriceCacheData`**，写成 `Map<String, PriceCache>` / `Future<PriceCache?>` 全部类型报错（`PriceCache` 是 Table 类，字段是 `IntColumn` 而非 `int`）。
+- **根因**：drift 只在「单列 autoIncrement 主键」时才把行类命名为 `<Table>`，否则生成 `<Table>Data`；表类本身仍是 `PriceCache`。
+- **解决**：行类型统一写 `PriceCacheData`，Companion 仍是 `PriceCacheCompanion`。
+- **预防**：写新表时先看生成的 `.g.dart` 里 `class XxxData` 还是 `class Xxx`，再定 DAO 的返回类型。
+
 ## 3. Flutter 测试
 
 ### 3.1 Widget 测试收不到广播流的"历史"数据

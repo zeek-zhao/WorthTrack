@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'accounts/accounts_page.dart';
+import 'positions/positions_page.dart';
 import 'reports/reports_page.dart';
 import 'transactions/transactions_page.dart';
 
-/// 应用首页：底部导航（明细 / 报表 / 资产）。
+/// 应用首页：底部导航（明细 / 报表 / 资产 / 投资）。
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -21,7 +22,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [TransactionsPage(), ReportsPage(), AccountsPage()],
+        children: const [
+          TransactionsPage(),
+          ReportsPage(),
+          AccountsPage(),
+          PositionsPage(),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
@@ -41,6 +47,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: Icon(Icons.account_balance_wallet),
             label: '资产',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.trending_up_outlined),
+            selectedIcon: Icon(Icons.trending_up),
+            label: '投资',
           ),
         ],
       ),
