@@ -101,6 +101,20 @@
 - **解决**：行类型统一写 `PriceCacheData`，Companion 仍是 `PriceCacheCompanion`。
 - **预防**：写新表时先看生成的 `.g.dart` 里 `class XxxData` 还是 `class Xxx`，再定 DAO 的返回类型。
 
+### 2.7 腾讯行情响应按 UTF-8/latin1 解码后按 `~` 切分 → 列错位
+
+- **现象**：解析 `v_sh600519="1~贵州茅台~600519~1355.90~...";` 时，偶尔出现「名称乱码 + 现价取到别的字段」。
+- **根因**：腾讯接口返回 **GBK** 编码；GBK 双字节字符的尾字节范围是 `0x40–0xFE`，**`0x7E`（`~`）是合法尾字节**。用 latin1/utf8 解码后按 `~` 切分，名称里的字节会被误当分隔符，导致后续列整体错位（价格、涨跌等全部偏移）。
+- **解决**：先 `gbk.decode(bodyBytes)`（`fast_gbk` 纯 Dart 实现，桌面/测试环境都能跑），再按 `~` 切分；解码失败时回退 `utf8.decode(allowMalformed: true)`。
+- **预防**：第三方接口一律先确认编码（响应头 `Content-Type` 常不带 charset）；中文/非 ASCII 内容必须解码成 Unicode 后再做分隔符切分，不要对原始字节切分。
+
+### 2.8 drift 列方法漏写括号（`isNull` / `isNotNull`）
+
+- **现象**：`..where((p) => p.archivedAt.isNull)` 报 `The returned type 'Expression<bool> Function()' isn't returnable from a 'Expression<bool>' function`。
+- **根因**：`isNull()` 是方法不是 getter，漏括号就变成函数 tear-off。
+- **解决**：补 `()`：`p.archivedAt.isNull()`。
+- **预防**：与 2.2 的 `intEnum<T>()` 同类，analyze 会拦住；写 where 子句时统一带括号。
+
 ## 3. Flutter 测试
 
 ### 3.1 Widget 测试收不到广播流的"历史"数据

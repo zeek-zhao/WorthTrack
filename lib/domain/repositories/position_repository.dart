@@ -1,5 +1,6 @@
 import '../../data/db/app_database.dart';
 import '../position_valuation.dart';
+import '../price_provider.dart';
 
 /// 持仓领域接口（issue #13）。
 ///
@@ -40,6 +41,12 @@ abstract class PositionRepository {
     required String code,
     required int priceMinor,
   });
+
+  /// 批量刷新行情并落 price_cache（M3-#14）。
+  ///
+  /// 只写入有有效报价的持仓：停牌 / 代码不存在 / 拉取失败一律**不覆盖**
+  /// 已有缓存价（兜底语义见 M3-#15），返回各状态计数供 UI 提示。
+  Future<PriceRefreshReport> refreshPrices();
 }
 
 /// 同市场同代码重复建仓。

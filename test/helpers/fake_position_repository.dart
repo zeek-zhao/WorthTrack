@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/domain/position_valuation.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 import 'package:worthtrack/domain/repositories/position_repository.dart';
 
 import 'fake_transaction_repository.dart' show valueStream;
@@ -123,6 +124,28 @@ class FakePositionRepository implements PositionRepository {
     required int priceMinor,
   }) async {
     emitPrice(market, code, priceMinor);
+  }
+
+  /// 下一次 [refreshPrices] 的返回结果。
+  PriceRefreshReport refreshReport = PriceRefreshReport.empty;
+
+  /// 模拟行情刷新会写入的报价（symbol → 分）；写入后推一次变更。
+  final Map<String, int> nextQuotes = {};
+
+  /// 被调用次数，供断言。
+  int refreshCalls = 0;
+
+  @override
+  Future<PriceRefreshReport> refreshPrices() async {
+    refreshCalls++;
+    if (nextQuotes.isNotEmpty) {
+      nextQuotes.forEach((symbol, price) {
+        _prices[symbol] = (price, DateTime(2026, 10, 27, 15));
+      });
+      nextQuotes.clear();
+      _changes.add(null);
+    }
+    return refreshReport;
   }
 
   void dispose() => _changes.close();

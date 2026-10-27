@@ -40,6 +40,8 @@ dependencies:
   drift: ^2.29.0
   sqlite3_flutter_libs: ^0.5.42
   path_provider: ^2.1.5
+  fast_gbk: ^1.0.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

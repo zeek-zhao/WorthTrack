@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 import 'package:worthtrack/ui/positions/positions_page.dart';
 
 import '../helpers/fake_position_repository.dart';
@@ -181,5 +182,42 @@ void main() {
       find.byKey(const Key('position_price_field')),
     );
     expect(priceField.controller!.text, '1700.00');
+  });
+
+  testWidgets('刷新行情：市值更新并提示结果', (tester) async {
+    await pumpPage(tester, [makeTestPosition()]);
+    fake.nextQuotes['sh600519'] = 170000;
+    fake.refreshReport = const PriceRefreshReport(
+      updated: 1,
+      suspended: 0,
+      notFound: 0,
+      failed: 0,
+    );
+
+    await tester.tap(find.byKey(const Key('refresh_prices_btn')));
+    await tester.pumpAndSettle();
+
+    expect(fake.refreshCalls, 1);
+    expect(find.text('¥255000.00'), findsNWidgets(2));
+    expect(find.text('已更新 1 只报价'), findsOneWidget);
+    // 让 SnackBar 自动消失，避免遗留计时器。
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('刷新失败：提示沿用缓存价，市值保持原状', (tester) async {
+    await pumpPage(tester, [makeTestPosition()]);
+    fake.refreshReport = const PriceRefreshReport(
+      updated: 0,
+      suspended: 0,
+      notFound: 0,
+      failed: 1,
+    );
+
+    await tester.tap(find.byKey(const Key('refresh_prices_btn')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('更新 0 只，拉取失败 1 只（未更新的沿用缓存价）'), findsOneWidget);
+    expect(find.text('待录价'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
   });
 }

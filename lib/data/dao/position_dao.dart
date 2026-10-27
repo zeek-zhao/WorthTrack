@@ -23,6 +23,11 @@ class PositionDao extends DatabaseAccessor<AppDatabase>
     return query.watch();
   }
 
+  /// 一次性取未归档持仓（批量刷新行情用，非流）。
+  Future<List<Position>> getActivePositions() {
+    return (select(positions)..where((p) => p.archivedAt.isNull())).get();
+  }
+
   Future<Position?> getById(int id) {
     return (select(positions)..where((p) => p.id.equals(id))).getSingleOrNull();
   }
@@ -71,12 +76,18 @@ class PositionDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// 写入/覆盖现价（主键 symbol，幂等 upsert）。
-  Future<void> upsertPrice(String symbol, int priceMinor) async {
+  ///
+  /// [at] 为行情时间（手动改价时传 null，用当前时刻）。
+  Future<void> upsertPrice(
+    String symbol,
+    int priceMinor, {
+    DateTime? at,
+  }) async {
     await into(priceCache).insertOnConflictUpdate(
       PriceCacheCompanion.insert(
         symbol: symbol,
         priceMinor: priceMinor,
-        updatedAt: DateTime.now(),
+        updatedAt: at ?? DateTime.now(),
       ),
     );
   }

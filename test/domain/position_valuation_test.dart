@@ -43,7 +43,7 @@ void main() {
       expect(v.profitPercent, closeTo(-6.25, 1e-9));
     });
 
-    test('场内基金份额与低价：1000.00 份 @成本 1.234，现价 1.300', () {
+    test('场内基金份额与低价：1000.00 份 @成本 12.34，现价 13.00', () {
       final v = PositionValuation(
         position: position(
           market: Market.sz,
@@ -55,9 +55,9 @@ void main() {
         priceMinor: 1300,
       );
 
-      expect(v.costMinor, 1234000); // 1000 × 1.234 元 = 1234.00
-      expect(v.marketValueMinor, 1300000);
-      expect(v.profitMinor, 66000);
+      expect(v.costMinor, 1234000); // 1000 × 12.34 元 = 12340.00
+      expect(v.marketValueMinor, 1300000); // 1000 × 13.00 元
+      expect(v.profitMinor, 66000); // +660.00
       expect(v.profitPercent, closeTo(66000 / 1234000 * 100, 1e-9));
     });
 

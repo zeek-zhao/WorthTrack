@@ -1,13 +1,46 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:worthtrack/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/data/price/tencent_price_provider.dart';
 import 'package:worthtrack/data/repositories/budget_repository_impl.dart';
+import 'package:worthtrack/data/repositories/position_repository_impl.dart';
 import 'package:worthtrack/data/repositories/recurring_repository_impl.dart';
 
 import '../test/helpers/sqlite3_loader.dart';
+
+/// 构造一条腾讯行情响应（字段位置与真实响应一致，GBK 编码）。
+String tencentLine(
+  String symbol,
+  String name,
+  String price, {
+  String time = '20261027161452',
+}) {
+  final fields = <String>[
+    symbol.startsWith('sh') ? '1' : '51',
+    name,
+    symbol.substring(2),
+    price,
+    price,
+    price,
+    '1000',
+  ];
+  while (fields.length < 30) {
+    fields.add('');
+  }
+  fields
+    ..add(time)
+    ..add('0.00')
+    ..add('0.00')
+    ..add(price)
+    ..add(price);
+  return 'v_$symbol="${fields.join('~')}";';
+}
 
 /// M1 碰钱路径集成测试（issue #8）。
 ///
@@ -209,5 +242,98 @@ void main() {
     final after = await repo.watchBudgetStatuses(DateTime(2026, 10)).first;
     expect(after.single.overBudget, isTrue);
     expect(after.single.remainingMinor, -1000);
+  });
+
+  // ===== M3 碰钱路径（issue #13/#14）=====
+
+  /// 用 mock HTTP 驱动真实链路：
+  /// GBK 响应字节 → 解码 → 解析 → price_cache → 估值流 → 市值/盈亏。
+  testWidgets('刷新行情（mock HTTP）→ 缓存价落库、市值与盈亏正确', (tester) async {
+    final body =
+        '${tencentLine('sh600519', '贵州茅台', '1355.90')}'
+        '${tencentLine('sz159915', '创业板ETF', '2.563')}';
+    final repo = PositionRepositoryImpl(
+      db.positionDao,
+      TencentPriceProvider(
+        client: MockClient((request) async {
+          expect(
+            request.url.toString(),
+            'https://qt.gtimg.cn/q=sh600519,sz159915',
+          );
+          return http.Response.bytes(gbk.encode(body), 200);
+        }),
+      ),
+    );
+
+    await repo.createPosition(
+      market: Market.sh,
+      code: '600519',
+      name: '贵州茅台',
+      sharesCent: 15000, // 150.00 份
+      costPriceMinor: 160000, // 成本 1600.00
+    );
+    await repo.createPosition(
+      market: Market.sz,
+      code: '159915',
+      name: '创业板ETF',
+      sharesCent: 100000, // 1000.00 份
+      costPriceMinor: 300, // 成本 3.00 元
+    );
+
+    // 刷新前：无价，市值为空。
+    expect(
+      (await repo.watchValuations().first).every((v) => !v.hasPrice),
+      isTrue,
+    );
+
+    final report = await repo.refreshPrices();
+    expect(report.updated, 2);
+    expect(report.failed, 0);
+
+    final valuations = await repo.watchValuations().first;
+    final moutai = valuations.firstWhere((v) => v.symbol == 'sh600519');
+    expect(moutai.priceMinor, 135590);
+    expect(moutai.marketValueMinor, 20338500); // 150 × 1355.90 元
+    expect(moutai.profitMinor, 20338500 - 24000000); // 浮亏
+
+    final etf = valuations.firstWhere((v) => v.symbol == 'sz159915');
+    expect(etf.priceMinor, 256); // 2.563 → 256 分（分精度四舍五入）
+    expect(etf.marketValueMinor, 256000); // 1000 × 2.56 元
+
+    // 缓存价落库，且时间取行情时间（不是本地刷新时刻）。
+    final cached = await db.positionDao.getPrice('sh600519');
+    expect(cached!.priceMinor, 135590);
+    expect(cached.updatedAt, DateTime(2026, 10, 27, 16, 14, 52));
+  });
+
+  testWidgets('刷新遇停牌 → 沿用缓存价，市值不被清零', (tester) async {
+    final repo = PositionRepositoryImpl(
+      db.positionDao,
+      TencentPriceProvider(
+        client: MockClient(
+          (_) async => http.Response.bytes(
+            gbk.encode(tencentLine('sh600519', '贵州茅台', '0.00')),
+            200,
+          ),
+        ),
+      ),
+    );
+    await repo.createPosition(
+      market: Market.sh,
+      code: '600519',
+      name: '贵州茅台',
+      sharesCent: 15000,
+      costPriceMinor: 160000,
+    );
+    // 先有一份手动录入的缓存价。
+    await repo.setPrice(market: Market.sh, code: '600519', priceMinor: 170000);
+
+    final report = await repo.refreshPrices();
+
+    expect(report.suspended, 1);
+    expect(report.updated, 0);
+    final v = (await repo.watchValuations().first).single;
+    expect(v.priceMinor, 170000); // 沿用缓存价
+    expect(v.marketValueMinor, 25500000);
   });
 }

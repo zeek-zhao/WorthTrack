@@ -11,18 +11,52 @@ import '../../domain/repositories/position_repository.dart';
 const _upColor = Color(0xFFEF5350);
 const _downColor = Color(0xFF4CAF50);
 
-/// 投资持仓页（issue #13）：持仓列表 + 组合汇总 + 新建/编辑/改价/归档/删除。
+/// 投资持仓页：持仓列表 + 组合汇总 + 新建/编辑/改价/归档/删除 + 手动刷新行情。
 ///
-/// 现价来源：本页手动录入（写 price_cache）；M3-#14 接入行情后自动覆盖，
+/// 现价来源：手动录入（写 price_cache）或行情刷新覆盖（M3-#14）；
 /// M3-#15 补「拉取失败回退缓存价 + 更新时间标注」。
-class PositionsPage extends ConsumerWidget {
+class PositionsPage extends ConsumerStatefulWidget {
   const PositionsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PositionsPage> createState() => _PositionsPageState();
+}
+
+class _PositionsPageState extends ConsumerState<PositionsPage> {
+  bool _refreshing = false;
+
+  Future<void> _refreshQuotes() async {
+    setState(() => _refreshing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final report = await ref.read(positionRepositoryProvider).refreshPrices();
+      messenger.showSnackBar(SnackBar(content: Text(report.summary)));
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final repo = ref.watch(positionRepositoryProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('投资持仓')),
+      appBar: AppBar(
+        title: const Text('投资持仓'),
+        actions: [
+          IconButton(
+            key: const Key('refresh_prices_btn'),
+            tooltip: '刷新行情',
+            onPressed: _refreshing ? null : _refreshQuotes,
+            icon: _refreshing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<PositionValuation>>(
         stream: repo.watchValuations(),
         builder: (context, snap) {
