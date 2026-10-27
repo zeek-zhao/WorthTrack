@@ -15,6 +15,32 @@ String marketLabel(Market market) => switch (market) {
 /// 份额（0.01 份为单位）→ 展示文本，如 15025 → "150.25"。
 String formatShares(int sharesCent) => Money.toYuan(sharesCent);
 
+/// 价格时间标注（M3-#15）：让用户一眼看出「这个市值是什么时候的价」。
+///
+/// - 当天：`价格更新 15:00`
+/// - 当年其它日期：`价格更新 10-26 15:00`
+/// - 跨年：`价格更新 2025-12-31 15:00`
+///
+/// [now] 仅用于测试注入，生产传 null 取本地当前时间。
+String formatPriceTime(DateTime updatedAt, {DateTime? now}) {
+  final current = now ?? DateTime.now();
+  final time =
+      '${updatedAt.hour.toString().padLeft(2, '0')}:'
+      '${updatedAt.minute.toString().padLeft(2, '0')}';
+  if (updatedAt.year == current.year &&
+      updatedAt.month == current.month &&
+      updatedAt.day == current.day) {
+    return '价格更新 $time';
+  }
+  final monthDay =
+      '${updatedAt.month.toString().padLeft(2, '0')}-'
+      '${updatedAt.day.toString().padLeft(2, '0')}';
+  if (updatedAt.year == current.year) {
+    return '价格更新 $monthDay $time';
+  }
+  return '价格更新 ${updatedAt.year}-$monthDay $time';
+}
+
 /// 解析份额输入（最多两位小数）→ 0.01 份整数；非法返回 null。
 ///
 /// 份额与金额同为「两位小数定点数」，复用同一套校验规则。

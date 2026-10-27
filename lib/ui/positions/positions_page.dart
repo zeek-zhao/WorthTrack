@@ -94,6 +94,14 @@ void _openEditDialog(BuildContext context, [PositionValuation? initial]) {
   );
 }
 
+/// 价格时间标注（M3-#15）：有价显示更新时间，无价提示待录。
+String _priceTimeText(PositionValuation valuation) {
+  if (!valuation.hasPrice) return '待录价';
+  final updatedAt = valuation.priceUpdatedAt;
+  if (updatedAt == null) return '价格时间未知';
+  return formatPriceTime(updatedAt);
+}
+
 /// 盈亏文案：`+¥150.00（+6.25%）`；无现价时 `—`。
 String _profitText(int? profitMinor, double? percent) {
   if (profitMinor == null) return '—';
@@ -186,10 +194,18 @@ class _PositionTile extends ConsumerWidget {
           ),
         ],
       ),
-      subtitle: Text(
-        '份额 ${formatShares(position.sharesCent)} · '
-        '成本 ${Money.toYuanSymbol(position.costPriceMinor)}',
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '份额 ${formatShares(position.sharesCent)} · '
+            '成本 ${Money.toYuanSymbol(position.costPriceMinor)}',
+          ),
+          const SizedBox(height: 2),
+          Text(_priceTimeText(valuation), style: theme.textTheme.labelSmall),
+        ],
       ),
+      isThreeLine: true,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -198,7 +214,7 @@ class _PositionTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                marketValue == null ? '待录价' : Money.toYuanSymbol(marketValue),
+                marketValue == null ? '—' : Money.toYuanSymbol(marketValue),
                 style: theme.textTheme.titleSmall,
               ),
               Text(
