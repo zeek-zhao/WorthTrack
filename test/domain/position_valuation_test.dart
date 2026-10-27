@@ -140,6 +140,38 @@ void main() {
     });
   });
 
+  group('价格时间标注', () {
+    test('当天只显示时分', () {
+      expect(
+        formatPriceTime(
+          DateTime(2026, 10, 27, 15, 4),
+          now: DateTime(2026, 10, 27, 22),
+        ),
+        '价格更新 15:04',
+      );
+    });
+
+    test('当年其它日期带月日', () {
+      expect(
+        formatPriceTime(
+          DateTime(2026, 10, 26, 9, 5),
+          now: DateTime(2026, 10, 27, 22),
+        ),
+        '价格更新 10-26 09:05',
+      );
+    });
+
+    test('跨年带年份', () {
+      expect(
+        formatPriceTime(
+          DateTime(2025, 12, 31, 15),
+          now: DateTime(2026, 1, 2, 10),
+        ),
+        '价格更新 2025-12-31 15:00',
+      );
+    });
+  });
+
   group('组合汇总', () {
     test('空组合', () {
       final s = PortfolioSummary.from(const []);

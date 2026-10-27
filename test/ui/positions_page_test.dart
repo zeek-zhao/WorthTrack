@@ -141,6 +141,8 @@ void main() {
 
     expect(find.text('¥255000.00'), findsNWidgets(2));
     expect(find.text('+¥15000.00（+6.25%）'), findsOneWidget);
+    // 手动改价后也标注价格时间（具体日期随时钟变化，只断言前缀）。
+    expect(find.textContaining('价格更新'), findsOneWidget);
   });
 
   testWidgets('归档（清仓）后从列表移除', (tester) async {
@@ -200,6 +202,8 @@ void main() {
     expect(fake.refreshCalls, 1);
     expect(find.text('¥255000.00'), findsNWidgets(2));
     expect(find.text('已更新 1 只报价'), findsOneWidget);
+    // 刷新后标注价格时间。
+    expect(find.textContaining('价格更新'), findsOneWidget);
     // 让 SnackBar 自动消失，避免遗留计时器。
     await tester.pump(const Duration(seconds: 5));
   });

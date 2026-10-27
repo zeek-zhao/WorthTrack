@@ -139,7 +139,9 @@ void main() {
       expect(report.suspended, 1);
       expect(report.updated, 0);
       final v = (await repo.watchValuations().first).single;
-      expect(v.priceMinor, 165000); // 沿用缓存价
+      expect(v.priceMinor, 165000);
+      // 回退缓存价：市值仍按缓存价算，不被清零。
+      expect(v.marketValueMinor, 24750000); // 沿用缓存价
     });
 
     test('代码不存在不覆盖缓存价，计入 notFound', () async {
@@ -161,6 +163,8 @@ void main() {
       expect(report.updated, 0);
       final v = (await repo.watchValuations().first).single;
       expect(v.priceMinor, 165000);
+      // 回退缓存价：市值仍按缓存价算，不被清零。
+      expect(v.marketValueMinor, 24750000);
     });
 
     test('行情源少返回代码时按 failed 兜底（防御性）', () async {
@@ -177,6 +181,8 @@ void main() {
       expect(report.failed, 1);
       final v = (await repo.watchValuations().first).single;
       expect(v.priceMinor, 165000);
+      // 回退缓存价：市值仍按缓存价算，不被清零。
+      expect(v.marketValueMinor, 24750000);
     });
 
     test('整批拉取失败：failed = 持仓数，缓存一条不动', () async {
@@ -194,6 +200,8 @@ void main() {
       expect(report.updated, 0);
       final v = (await repo.watchValuations().first).single;
       expect(v.priceMinor, 165000);
+      // 回退缓存价：市值仍按缓存价算，不被清零。
+      expect(v.marketValueMinor, 24750000);
     });
   });
 
