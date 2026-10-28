@@ -3,11 +3,11 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
-/// 「选保存位置 / 选备份文件」的抽象（issue #18）。
+/// 「选保存位置 / 选文件」的抽象（issue #18 备份、#19 CSV 导出共用）。
 ///
 /// 单独抽出来是为了让 UI 与集成测试都不必真的弹系统对话框：
 /// 测试注入假实现即可，业务代码也不必知道 file_picker 的存在。
-abstract class BackupFilePicker {
+abstract class FileSavePicker {
   /// 让用户选一个位置把 [bytes] 存成 [suggestedName]。
   ///
   /// 返回最终保存路径；用户取消返回 null。
@@ -16,13 +16,13 @@ abstract class BackupFilePicker {
     required Uint8List bytes,
   });
 
-  /// 让用户挑一个备份文件，返回**本机可读**的路径；用户取消返回 null。
+  /// 让用户挑一个文件，返回**本机可读**的路径；用户取消返回 null。
   Future<String?> pickFileToRead();
 }
 
 /// 系统对话框实现（Android 走 SAF，桌面走 xdg-desktop-portal / 原生对话框）。
-class PlatformBackupFilePicker implements BackupFilePicker {
-  const PlatformBackupFilePicker();
+class PlatformFileSavePicker implements FileSavePicker {
+  const PlatformFileSavePicker();
 
   @override
   Future<String?> saveBytes({
@@ -34,7 +34,7 @@ class PlatformBackupFilePicker implements BackupFilePicker {
     // - 桌面端只返回用户选的路径，bytes 参数被忽略，得我们自己写。
     if (Platform.isAndroid || Platform.isIOS) {
       return FilePicker.saveFile(
-        dialogTitle: '导出账本备份',
+        dialogTitle: '保存文件',
         fileName: suggestedName,
         type: FileType.any,
         bytes: bytes,
@@ -42,7 +42,7 @@ class PlatformBackupFilePicker implements BackupFilePicker {
     }
 
     final path = await FilePicker.saveFile(
-      dialogTitle: '导出账本备份',
+      dialogTitle: '保存文件',
       fileName: suggestedName,
       type: FileType.any,
     );
@@ -56,7 +56,7 @@ class PlatformBackupFilePicker implements BackupFilePicker {
   @override
   Future<String?> pickFileToRead() async {
     final result = await FilePicker.pickFiles(
-      dialogTitle: '选择备份文件',
+      dialogTitle: '选择文件',
       type: FileType.any,
       withData: false,
     );

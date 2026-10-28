@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -13,10 +14,12 @@ import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/data/pin/pin_store.dart';
 import 'package:worthtrack/data/price/tencent_price_provider.dart';
 import 'package:worthtrack/data/repositories/budget_repository_impl.dart';
+import 'package:worthtrack/data/repositories/export_repository_impl.dart';
 import 'package:worthtrack/data/repositories/net_worth_repository_impl.dart';
 import 'package:worthtrack/data/repositories/pin_repository_impl.dart';
 import 'package:worthtrack/data/repositories/position_repository_impl.dart';
 import 'package:worthtrack/data/repositories/recurring_repository_impl.dart';
+import 'package:worthtrack/domain/csv_export.dart';
 import 'package:worthtrack/domain/price_provider.dart';
 
 import '../test/helpers/sqlite3_loader.dart';
@@ -576,6 +579,59 @@ void main() {
     final price = await db.positionDao.getPrice('sh600519');
     expect(price!.priceMinor, 135590);
     expect(price.updatedAt, DateTime(2026, 10, 27, 16, 14));
+  });
+
+  // ===== M4 碰钱路径（issue #19）=====
+
+  /// CSV 是「离开应用」的出口，编码错了用户在 Excel 里看到的全是乱码，
+  /// 因此这里连 BOM 字节一起断言，而不只是看行数。
+  testWidgets('导出流水 CSV：BOM + 列顺序 + 中文与逗号转义', (tester) async {
+    final bank = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '工资卡',
+        type: AccountType.bank,
+        balanceMinor: const Value(1000000),
+      ),
+    );
+    final cash = await db.accountDao.createAccount(
+      AccountsCompanion.insert(name: '零钱', type: AccountType.cash),
+    );
+    final food = await db.categoryDao.createCategory(
+      CategoriesCompanion.insert(name: '餐饮', kind: CategoryKind.expense),
+    );
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: bank,
+        categoryId: food,
+        amountMinor: 2580, // ¥25.80
+        note: '午饭,加饮料',
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.transfer,
+        accountId: bank,
+        toAccountId: cash,
+        amountMinor: 100000, // ¥1000.00
+        occurredAt: DateTime(2026, 10, 21, 9),
+      ),
+    );
+
+    final repo = ExportRepositoryImpl(
+      db.transactionDao,
+      now: () => DateTime(2026, 10, 28, 22, 45),
+    );
+    final export = await repo.transactionsCsv();
+
+    expect(export.rowCount, 2);
+    expect(export.bytes.sublist(0, 3), csvUtf8Bom);
+
+    final lines = utf8.decode(export.bytes.sublist(3)).split('\r\n');
+    expect(lines.first, '时间,类型,账户,分类,金额,备注');
+    expect(lines[1], '2026-10-20 12:00,支出,工资卡,餐饮,25.80,"午饭,加饮料"');
+    expect(lines[2], '2026-10-21 09:00,转账,工资卡 → 零钱,,1000.00,');
   });
 }
 

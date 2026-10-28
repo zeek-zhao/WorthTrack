@@ -3,22 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/di.dart';
 import 'package:worthtrack/domain/backup.dart';
+import 'package:worthtrack/domain/csv_export.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
 
-import '../helpers/fake_backup_file_picker.dart';
 import '../helpers/fake_backup_repository.dart';
+import '../helpers/fake_export_repository.dart';
+import '../helpers/fake_file_save_picker.dart';
 import '../helpers/fake_pin_repository.dart';
 
-/// issue #17：设置页开启/关闭/修改 PIN；issue #18：备份导出与恢复。
+/// issue #17：设置页开启/关闭/修改 PIN；issue #18：备份导出与恢复；
+/// issue #19：流水 CSV 导出。
 void main() {
   late FakePinRepository fake;
   late FakeBackupRepository backupRepo;
-  late FakeBackupFilePicker picker;
+  late FakeExportRepository exportRepo;
+  late FakeFileSavePicker picker;
 
   setUp(() {
     fake = FakePinRepository();
     backupRepo = FakeBackupRepository();
-    picker = FakeBackupFilePicker();
+    exportRepo = FakeExportRepository();
+    picker = FakeFileSavePicker();
   });
 
   Future<void> pumpSettings(WidgetTester tester) async {
@@ -27,7 +32,8 @@ void main() {
         overrides: [
           pinRepositoryProvider.overrideWithValue(fake),
           backupRepositoryProvider.overrideWithValue(backupRepo),
-          backupFilePickerProvider.overrideWithValue(picker),
+          exportRepositoryProvider.overrideWithValue(exportRepo),
+          fileSavePickerProvider.overrideWithValue(picker),
         ],
         child: const MaterialApp(home: SettingsPage()),
       ),
@@ -272,6 +278,47 @@ void main() {
 
     expect(backupRepo.restoreCalls, 1);
     expect(find.text('恢复失败，当前数据没有被改动'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  // ===== issue #19 流水 CSV 导出 =====
+
+  testWidgets('导出流水：交出去的是带 BOM 的 CSV，提示条数', (tester) async {
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('csv_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(exportRepo.calls, 1);
+    expect(picker.saveCalls, 1);
+    expect(picker.lastSuggestedName, startsWith('worthtrack-transactions-'));
+    expect(picker.lastSuggestedName, endsWith('.csv'));
+    // BOM 必须在最前面，否则 Excel 打开中文乱码。
+    expect(picker.lastBytes!.sublist(0, 3), csvUtf8Bom);
+    expect(find.text('已导出 3 条流水（CSV）'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('导出流水时用户取消保存 → 不提示成功', (tester) async {
+    picker.savePath = null;
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('csv_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(exportRepo.calls, 1);
+    expect(find.textContaining('已导出'), findsNothing);
+  });
+
+  testWidgets('导出流水失败 → 提示重试', (tester) async {
+    exportRepo.error = Exception('查询失败');
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('csv_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('导出失败，请重试'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
   });
 }

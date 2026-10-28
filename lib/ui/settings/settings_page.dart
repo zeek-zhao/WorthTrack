@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../di.dart';
 import '../../domain/pin_lock.dart';
 import 'backup_section.dart';
+import 'csv_export_section.dart';
 import 'pin_dialogs.dart';
 import 'settings_section.dart';
 
-/// 设置页（issue #17）：安全 / 备份与恢复 / 关于三组。
-/// M4 的 CSV 导出也挂在这里。
+/// 设置页：安全 / 备份与恢复 / 数据导出 / 关于四组。
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
@@ -119,6 +119,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           const Divider(height: 1),
           const BackupSection(),
+          const CsvExportSection(),
           const SettingsSectionHeader('关于'),
           const ListTile(
             leading: Icon(Icons.info_outline),
