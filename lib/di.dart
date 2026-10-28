@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
+import 'data/backup/backup_file_picker.dart';
+import 'data/backup/database_backup_repository.dart';
 import 'data/db/app_database.dart';
 import 'data/pin/pin_store.dart';
 import 'data/price/tencent_price_provider.dart';
@@ -18,6 +20,7 @@ import 'data/repositories/position_repository_impl.dart';
 import 'data/repositories/recurring_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
+import 'domain/repositories/backup_repository.dart';
 import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/price_provider.dart';
@@ -92,6 +95,17 @@ final netWorthRepositoryProvider = Provider<NetWorthRepository>((ref) {
 /// **不写数据库**——忘记 PIN 重置只需删文件，账目数据分毫不动。
 final pinRepositoryProvider = Provider<PinRepository>((ref) {
   return PinRepositoryImpl(FilePinStore());
+});
+
+/// 备份文件选择器（M4-#18）：抽出接口，测试与集成测试注入假实现即可，
+/// 不必真的弹系统对话框。
+final backupFilePickerProvider = Provider<BackupFilePicker>((ref) {
+  return const PlatformBackupFilePicker();
+});
+
+/// 账本备份与恢复（M4-#18）：导出走 `VACUUM INTO`，恢复走 ATTACH + 单事务替换。
+final backupRepositoryProvider = Provider<BackupRepository>((ref) {
+  return DatabaseBackupRepository(ref.watch(appDatabaseProvider));
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。

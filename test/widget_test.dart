@@ -94,6 +94,8 @@ void main() {
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
     expect(find.text('启动 PIN 锁'), findsOneWidget);
+    expect(find.text('备份与恢复'), findsOneWidget);
+    expect(find.text('导出备份'), findsOneWidget);
   });
 
   testWidgets('已设 PIN 时启动先出锁屏，解锁后才进入首页', (tester) async {

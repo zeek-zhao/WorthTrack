@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:worthtrack/data/backup/database_backup_repository.dart';
 import 'package:worthtrack/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/data/pin/pin_store.dart';
@@ -483,6 +484,98 @@ void main() {
     final txns = await db.transactionDao.watchByMonth(DateTime(2026, 10)).first;
     expect(txns, hasLength(1));
     expect(txns.first.amountMinor, 12345);
+  });
+
+  // ===== M4 碰钱路径（issue #18）=====
+
+  /// 备份 → 清空 → 恢复：三个环节串起来才是「数据不丢」，
+  /// 单测里恢复成功不代表导出的那份文件真能还原（可能只测了半条链路）。
+  testWidgets('导出备份 → 清空账本 → 从备份恢复 → 数据逐项一致', (tester) async {
+    final tempDir = await Directory.systemTemp.createTemp('wt_backup_it_');
+    addTearDown(() async {
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    });
+
+    final accountId = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '工资卡',
+        type: AccountType.bank,
+        balanceMinor: const Value(1000000), // ¥10000.00
+      ),
+    );
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: accountId,
+        amountMinor: 2580, // ¥25.80
+        note: '午饭',
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    await db.positionDao.createPosition(
+      PositionsCompanion.insert(
+        market: Market.sh,
+        code: '600519',
+        name: '贵州茅台',
+        sharesCent: 15000, // 150.00 份
+        costPriceMinor: 160000,
+      ),
+    );
+    await db.positionDao.upsertPrice(
+      'sh600519',
+      135590,
+      at: DateTime(2026, 10, 27, 16, 14),
+    );
+
+    final repo = DatabaseBackupRepository(
+      db,
+      tempDirectory: () async => tempDir,
+    );
+    final bytes = await repo.exportBytes();
+    final backupPath = '${tempDir.path}/backup.sqlite3';
+    await File(backupPath).writeAsBytes(bytes, flush: true);
+
+    // 清空（等价于换机 / 误删库）。
+    for (final table in [
+      'transactions',
+      'budgets',
+      'recurring_rules',
+      'positions',
+      'price_cache',
+      'categories',
+      'accounts',
+    ]) {
+      await db.customStatement('DELETE FROM "$table"');
+    }
+    expect(await db.accountDao.getById(accountId), isNull);
+
+    final inspection = await repo.inspect(backupPath);
+    expect(inspection.canRestore, isTrue);
+    expect(inspection.accountCount, 1);
+    expect(inspection.transactionCount, 1);
+    expect(inspection.positionCount, 1);
+
+    await repo.restoreFrom(backupPath);
+
+    // 余额、流水、持仓、缓存价逐项回到备份时的样子。
+    final account = await db.accountDao.getById(accountId);
+    expect(account, isNotNull);
+    expect(account!.name, '工资卡');
+    expect(account.balanceMinor, 997420);
+
+    final txns = await db.transactionDao.watchByMonth(DateTime(2026, 10)).first;
+    expect(txns, hasLength(1));
+    expect(txns.first.amountMinor, 2580);
+    expect(txns.first.note, '午饭');
+
+    final positions = await db.positionDao.getActivePositions();
+    expect(positions, hasLength(1));
+    expect(positions.single.code, '600519');
+    expect(positions.single.sharesCent, 15000);
+
+    final price = await db.positionDao.getPrice('sh600519');
+    expect(price!.priceMinor, 135590);
+    expect(price.updatedAt, DateTime(2026, 10, 27, 16, 14));
   });
 }
 

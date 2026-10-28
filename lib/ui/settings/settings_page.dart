@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../di.dart';
 import '../../domain/pin_lock.dart';
+import 'backup_section.dart';
 import 'pin_dialogs.dart';
+import 'settings_section.dart';
 
-/// 设置页（issue #17）：目前只有「安全」分组，后续 M4 的备份恢复 / CSV 导出
-/// 也挂在这里，所以独立成一个 tab 而不是塞进资产页。
+/// 设置页（issue #17）：安全 / 备份与恢复 / 关于三组。
+/// M4 的 CSV 导出也挂在这里。
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
@@ -84,13 +86,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final hasPin = _hasPin;
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
         children: [
-          _sectionHeader(theme, '安全'),
+          const SettingsSectionHeader('安全'),
           SwitchListTile(
             key: const Key('pin_switch'),
             secondary: const Icon(Icons.lock_outline),
@@ -112,36 +113,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: const Text('修改 PIN'),
               onTap: _onChangePin,
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Text(
-              'PIN 只用于阻挡他人随手翻看，不会加密数据库文件；'
-              '忘记 PIN 可以在锁屏页重置后直接进入，账目数据不会丢失。',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+          const SettingsHint(
+            'PIN 只用于阻挡他人随手翻看，不会加密数据库文件；'
+            '忘记 PIN 可以在锁屏页重置后直接进入，账目数据不会丢失。',
           ),
           const Divider(height: 1),
-          _sectionHeader(theme, '关于'),
+          const BackupSection(),
+          const SettingsSectionHeader('关于'),
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('WorthTrack'),
             subtitle: Text('本地记账，数据只存在这台设备上'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(ThemeData theme, String text) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        text,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-        ),
       ),
     );
   }
