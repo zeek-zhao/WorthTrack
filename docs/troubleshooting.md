@@ -129,6 +129,31 @@
 - **解决**：`/// 文件说明` + `library;` 置顶，紧跟其后才是 `import`。
 - **预防**：只给单个类/函数写注释就不需要 `library;`；要写「整个文件」的说明时先放指令再放 import。
 
+### 2.11 `VACUUM INTO` 目标文件已存在 → 直接报错
+
+- **现象**：导出备份时 `SQL logic error: output file already exists`。
+- **根因**：`VACUUM INTO '<path>'` 的语义是「**新建**一个文件」，目标已存在就失败，不像普通文件写入会覆盖。
+- **解决**：临时文件名带微秒时间戳（`worthtrack-export-<micros>.sqlite3`），写完读成字节后立刻删掉。
+- **预防**：把 `VACUUM INTO` 当成「另存为」而不是「写入」，任何复用固定路径的写法都会踩。
+
+### 2.12 `ATTACH DATABASE` 不能在事务里执行
+
+- **现象**：`cannot ATTACH database within transaction`。
+- **根因**：SQLite 明确禁止在活动事务内 ATTACH/DETACH。
+- **解决**：顺序固定为 `ATTACH` → `BEGIN ... COMMIT` → `DETACH`；drift 侧就是「先 `customStatement('ATTACH …')`，再 `db.transaction(...)`」。
+- **预防**：写「跨库搬数据」时先画一遍语句顺序，别把 ATTACH 塞进 `transaction {}` 里图省事。
+
+### 2.13 恢复备份用「关库 + 覆盖文件」→ 流断掉且失败不可回滚
+
+- **现象（设计阶段否决的方案）**：`db.close()` → `File.copy(备份, 库路径)` → 重建 Provider。问题有三：① 正在显示的 drift watch 流全部断开，必须重建整棵 Provider 树；② 复制到一半失败，用户既没有新数据也没有旧数据；③ 拿「应用正在使用的库文件」自己恢复时，等于先删再读，账本直接清空。
+- **根因**：文件级替换把「数据正确性」交给了文件系统，SQLite 事务完全没用上。
+- **解决**：改成 `ATTACH 备份库` + **单事务** `DELETE` 全表 + `INSERT … SELECT *`：
+  - 事务内先 `PRAGMA defer_foreign_keys = ON`，外键（`categories` 还自引用）留到提交时统一校验，清空/写入都不必纠结顺序；
+  - 失败整体回滚，UI 可以放心承诺「当前数据没有被改动」；
+  - 连接不断，drift 的 watch 流自动收到变更，页面即时刷新；
+  - 恢复前用 `PRAGMA database_list` 取主库路径，与候选文件比对，挡住「拿自己恢复」。
+- **预防**：凡是「整体替换用户数据」的动作，优先想「能不能在一个事务里完成」，而不是「关掉再换文件」。
+
 ## 3. Flutter 测试
 
 ### 3.1 Widget 测试收不到广播流的"历史"数据
@@ -155,6 +180,20 @@
 - **根因**：锁屏页有「忘记 PIN？」按钮，重置弹窗标题也用了同一句；打开弹窗后两者同时在树上。
 - **解决**：文案去重——弹窗标题改成「重置 PIN 锁？」，标题说动作、按钮说入口。
 - **预防**：`findsOneWidget` 断言前先想「这句话在别的控件上是否也合理」；确实需要同文案时改用 `find.byKey` 定位，或断言 `findsNWidgets(2)`。
+
+### 3.5 用 `AppDatabase` 打开任意文件 → drift 按 `onCreate` 把七张表建出来
+
+- **现象**：测试里想造一个「不是 WorthTrack 的 SQLite 库」（只含一张 `foo` 表）来验证 `missingTables`，结果校验直接通过。
+- **根因**：`AppDatabase(NativeDatabase(file))` 打开空库时 `user_version = 0`，drift 判定为「新库」→ 执行 `onCreate: createAll()`，于是七张表被自动补齐。
+- **解决**：造「外星库」改用主连接 `ATTACH DATABASE '<path>' AS alien` + `CREATE TABLE alien.foo (...)` + `DETACH`，绕开 drift 的迁移逻辑。
+- **预防**：测试里凡是要「一个结构不完整/不正确的库」，一律用 ATTACH 手工建，不要经过 `AppDatabase`。
+
+### 3.6 快照断言里写 `'${row?.field}'` → 空表也「不空」
+
+- **现象**：清空全表后 `expect(await snapshot(db), isEmpty)` 失败，实际值是 `['null@null']`。
+- **根因**：`snapshot()` 里有一行 `'${price?.priceMinor}@${price?.updatedAt}'`，price 为 null 时这行仍然生成一个字符串元素，集合永远不为空。
+- **解决**：改用集合的 if 元素：`if (price != null) '${price.priceMinor}@${price.updatedAt}'`。
+- **预防**：写「快照/摘要」这类对比辅助函数时，每个元素都要能被数据的存在性整体裁掉；否则「空」这个状态根本表达不出来。
 
 ## 4. WSL 环境与工具链
 
@@ -229,6 +268,7 @@
 | drift 版本 | 2.29.x，枚举+表+库单文件（见 2.1） |
 | 时间过滤 | 一律左闭右开（见 2.3） |
 | 金额存储 | 全部整数分，`lib/core/money.dart` 转换 |
+| 备份/恢复 | 导出 `VACUUM INTO`、恢复 `ATTACH` + 单事务替换（见 2.11–2.13） |
 | WSL 命令 | `MSYS_NO_PATHCONV=1`；复杂命令写 scripts/ 脚本 |
 | 敏感信息 | 永不命令行内联，脚本内读文件 |
 | 发版 | tag `vX.Y.Z` → CI 全绿 → 签名 APK + Linux 包自动上 Release |

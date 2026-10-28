@@ -43,6 +43,7 @@ dependencies:
   fast_gbk: ^1.0.0
   http: ^1.6.0
   crypto: ^3.0.8
+  file_picker: ^11.0.3
 
 dev_dependencies:
   flutter_test:

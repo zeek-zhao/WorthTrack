@@ -2,22 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/backup.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
 
+import '../helpers/fake_backup_file_picker.dart';
+import '../helpers/fake_backup_repository.dart';
 import '../helpers/fake_pin_repository.dart';
 
-/// issue #17：设置页开启/关闭/修改 PIN。
+/// issue #17：设置页开启/关闭/修改 PIN；issue #18：备份导出与恢复。
 void main() {
   late FakePinRepository fake;
+  late FakeBackupRepository backupRepo;
+  late FakeBackupFilePicker picker;
 
   setUp(() {
     fake = FakePinRepository();
+    backupRepo = FakeBackupRepository();
+    picker = FakeBackupFilePicker();
   });
 
   Future<void> pumpSettings(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [pinRepositoryProvider.overrideWithValue(fake)],
+        overrides: [
+          pinRepositoryProvider.overrideWithValue(fake),
+          backupRepositoryProvider.overrideWithValue(backupRepo),
+          backupFilePickerProvider.overrideWithValue(picker),
+        ],
         child: const MaterialApp(home: SettingsPage()),
       ),
     );
@@ -156,5 +167,111 @@ void main() {
     expect(fake.setCalls, 0);
     expect(fake.pin, '123456');
     expect(pinSwitch(tester).value, isTrue);
+  });
+
+  // ===== issue #18 备份与恢复 =====
+
+  testWidgets('导出备份：把快照字节交给系统保存，成功提示带大小', (tester) async {
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(backupRepo.exportCalls, 1);
+    expect(picker.saveCalls, 1);
+    expect(picker.lastBytes, hasLength(4));
+    // 建议文件名带时间戳，用户能按时间排序认出来。
+    expect(picker.lastSuggestedName, startsWith('worthtrack-backup-'));
+    expect(picker.lastSuggestedName, endsWith('.sqlite3'));
+    expect(find.text('已导出备份（4 B）'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('导出时用户取消保存 → 不提示成功', (tester) async {
+    picker.savePath = null;
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(backupRepo.exportCalls, 1);
+    expect(find.textContaining('已导出备份'), findsNothing);
+  });
+
+  testWidgets('导出失败 → 提示重试，不崩', (tester) async {
+    backupRepo.exportError = Exception('磁盘满');
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_export_tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('导出失败，请重试'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('选了不合格的备份 → 说明原因，且绝不覆盖数据', (tester) async {
+    backupRepo.inspection = const BackupInspection(
+      path: '/tmp/other.sqlite3',
+      sizeBytes: 1024,
+      schemaVersion: 0,
+      problem: BackupProblem.missingTables,
+    );
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_restore_tile')));
+    await tester.pumpAndSettle();
+
+    expect(picker.openCalls, 1);
+    expect(find.byKey(const Key('backup_problem_dialog')), findsOneWidget);
+    expect(find.text(BackupProblem.missingTables.message), findsOneWidget);
+    expect(find.byKey(const Key('backup_confirm_dialog')), findsNothing);
+    expect(backupRepo.restoreCalls, 0);
+  });
+
+  testWidgets('恢复前的二次确认：取消则不动数据', (tester) async {
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_restore_tile')));
+    await tester.pumpAndSettle();
+
+    // 确认框要把「备份里有什么」摊开，用户才敢点覆盖。
+    expect(find.byKey(const Key('backup_confirm_dialog')), findsOneWidget);
+    expect(find.textContaining('2 个账户'), findsOneWidget);
+    expect(find.textContaining('5 条流水'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('backup_cancel_btn')));
+    await tester.pumpAndSettle();
+
+    expect(backupRepo.restoreCalls, 0);
+  });
+
+  testWidgets('确认后执行恢复，提示恢复结果', (tester) async {
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_restore_tile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('backup_confirm_btn')));
+    await tester.pumpAndSettle();
+
+    expect(backupRepo.restoreCalls, 1);
+    expect(backupRepo.restoredPath, '/tmp/picked-backup.sqlite3');
+    expect(find.text('已恢复备份：2 个账户、5 条流水'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('恢复失败 → 明确告知「数据没有被改动」', (tester) async {
+    backupRepo.restoreError = Exception('boom');
+    await pumpSettings(tester);
+
+    await tester.tap(find.byKey(const Key('backup_restore_tile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('backup_confirm_btn')));
+    await tester.pumpAndSettle();
+
+    expect(backupRepo.restoreCalls, 1);
+    expect(find.text('恢复失败，当前数据没有被改动'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
   });
 }
