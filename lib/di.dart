@@ -6,14 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
-import 'data/backup/backup_file_picker.dart';
 import 'data/backup/database_backup_repository.dart';
 import 'data/db/app_database.dart';
+import 'data/files/file_save_picker.dart';
 import 'data/pin/pin_store.dart';
 import 'data/price/tencent_price_provider.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/budget_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
+import 'data/repositories/export_repository_impl.dart';
 import 'data/repositories/net_worth_repository_impl.dart';
 import 'data/repositories/pin_repository_impl.dart';
 import 'data/repositories/position_repository_impl.dart';
@@ -24,6 +25,7 @@ import 'domain/repositories/backup_repository.dart';
 import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/price_provider.dart';
+import 'domain/repositories/export_repository.dart';
 import 'domain/repositories/net_worth_repository.dart';
 import 'domain/repositories/pin_repository.dart';
 import 'domain/repositories/position_repository.dart';
@@ -97,15 +99,20 @@ final pinRepositoryProvider = Provider<PinRepository>((ref) {
   return PinRepositoryImpl(FilePinStore());
 });
 
-/// 备份文件选择器（M4-#18）：抽出接口，测试与集成测试注入假实现即可，
-/// 不必真的弹系统对话框。
-final backupFilePickerProvider = Provider<BackupFilePicker>((ref) {
-  return const PlatformBackupFilePicker();
+/// 文件选择器（M4-#18 备份 / #19 CSV 导出共用）：抽出接口，
+/// 测试与集成测试注入假实现即可，不必真的弹系统对话框。
+final fileSavePickerProvider = Provider<FileSavePicker>((ref) {
+  return const PlatformFileSavePicker();
 });
 
 /// 账本备份与恢复（M4-#18）：导出走 `VACUUM INTO`，恢复走 ATTACH + 单事务替换。
 final backupRepositoryProvider = Provider<BackupRepository>((ref) {
   return DatabaseBackupRepository(ref.watch(appDatabaseProvider));
+});
+
+/// 交易流水 CSV 导出（M4-#19）：UTF-8 BOM，Excel 直开不乱码。
+final exportRepositoryProvider = Provider<ExportRepository>((ref) {
+  return ExportRepositoryImpl(ref.watch(appDatabaseProvider).transactionDao);
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。

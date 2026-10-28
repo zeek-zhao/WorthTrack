@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'account_dao.dart';
 import '../db/app_database.dart';
+import '../../domain/csv_export.dart';
 import '../../domain/net_worth.dart';
 import '../../domain/stats.dart';
 
@@ -52,7 +53,7 @@ class TxnFilter {
 }
 
 /// 交易表 DAO：写入交易与账户余额调整在**同一事务**内完成（碰钱路径）。
-@DriftAccessor(tables: [Transactions, Accounts])
+@DriftAccessor(tables: [Transactions, Accounts, Categories])
 class TransactionDao extends DatabaseAccessor<AppDatabase>
     with _$TransactionDaoMixin {
   TransactionDao(super.db);
@@ -130,6 +131,41 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     return query.watch().map(
       (rows) => rows.map((r) => r.readTable(transactions)).toList(),
     );
+  }
+
+  /// 导出用投影（issue #19）：带账户名/分类名，按时间**正序**。
+  ///
+  /// 这里刻意不写三重 join：转账要读 accounts 的第二个别名，SQL 复杂度陡增，
+  /// 而个人账本规模（万行以内）下「三张表各查一次 + Dart 端拼名字」更不容易错。
+  Future<List<CsvTransactionRow>> getForExport() async {
+    final accountNames = {
+      for (final account in await select(accounts).get())
+        account.id: account.name,
+    };
+    final categoryNames = {
+      for (final category in await select(categories).get())
+        category.id: category.name,
+    };
+    final rows =
+        await (select(transactions)..orderBy([
+              (t) => OrderingTerm.asc(t.occurredAt),
+              (t) => OrderingTerm.asc(t.id),
+            ]))
+            .get();
+
+    return [
+      for (final row in rows)
+        CsvTransactionRow(
+          occurredAt: row.occurredAt,
+          type: row.type,
+          // 账户被硬删除的情况理论上不会发生（只归档），仍给个可读兜底。
+          accountName: accountNames[row.accountId] ?? '已删除账户',
+          toAccountName: accountNames[row.toAccountId],
+          categoryName: categoryNames[row.categoryId],
+          amountMinor: row.amountMinor,
+          note: row.note,
+        ),
+    ];
   }
 
   /// 监听全部交易的轻量投影（issue #16 净资产回溯用）。

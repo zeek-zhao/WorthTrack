@@ -30,7 +30,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
 
   Future<void> _onExport() async {
     final repo = ref.read(backupRepositoryProvider);
-    final picker = ref.read(backupFilePickerProvider);
+    final picker = ref.read(fileSavePickerProvider);
     setState(() => _busy = true);
     try {
       final bytes = await repo.exportBytes();
@@ -50,7 +50,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
 
   Future<void> _onRestore() async {
     final repo = ref.read(backupRepositoryProvider);
-    final picker = ref.read(backupFilePickerProvider);
+    final picker = ref.read(fileSavePickerProvider);
 
     final path = await picker.pickFileToRead();
     if (path == null || !mounted) return;

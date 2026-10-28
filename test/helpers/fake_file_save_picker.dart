@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
-import 'package:worthtrack/data/backup/backup_file_picker.dart';
+import 'package:worthtrack/data/files/file_save_picker.dart';
 
 /// 文件选择器的假实现：直接把预设路径返回给调用方。
-class FakeBackupFilePicker implements BackupFilePicker {
+class FakeFileSavePicker implements FileSavePicker {
   /// 导出时「用户选的保存路径」；null 表示用户取消。
   String? savePath = '/tmp/worthtrack-backup.sqlite3';
 
