@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'di.dart';
 import 'ui/home_page.dart';
+import 'ui/lock/lock_gate.dart';
 
 /// 应用根 Widget：Material 3 + 中文 locale。
-/// 底部导航：明细 / 报表 / 资产。
+/// 底部导航：明细 / 报表 / 资产 / 投资 / 设置。
 /// 启动后执行周期账单补生成（issue #11），失败静默（下次启动再试）。
+/// 已设 PIN 时由 [LockGate] 先拦一道锁屏（issue #17）。
 class WorthTrackApp extends ConsumerStatefulWidget {
   const WorthTrackApp({super.key});
 
@@ -38,7 +40,7 @@ class _WorthTrackAppState extends ConsumerState<WorthTrackApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const LockGate(child: HomePage()),
     );
   }
 }

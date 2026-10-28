@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:fast_gbk/fast_gbk.dart';
@@ -7,9 +9,11 @@ import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:worthtrack/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/data/pin/pin_store.dart';
 import 'package:worthtrack/data/price/tencent_price_provider.dart';
 import 'package:worthtrack/data/repositories/budget_repository_impl.dart';
 import 'package:worthtrack/data/repositories/net_worth_repository_impl.dart';
+import 'package:worthtrack/data/repositories/pin_repository_impl.dart';
 import 'package:worthtrack/data/repositories/position_repository_impl.dart';
 import 'package:worthtrack/data/repositories/recurring_repository_impl.dart';
 import 'package:worthtrack/domain/price_provider.dart';
@@ -433,6 +437,52 @@ void main() {
     expect(overview.series.last.netWorthMinor, overview.netWorthMinor);
     expect(overview.series.first.month, DateTime(2026, 8));
     expect(overview.series.first.netWorthMinor, 1000000);
+  });
+
+  testWidgets('忘记 PIN 重置不清数据：PIN 文件删除，账目原样保留', (tester) async {
+    final accountId = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '工资卡',
+        type: AccountType.bank,
+        balanceMinor: Value(500000),
+      ),
+    );
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: accountId,
+        amountMinor: 12345,
+        occurredAt: DateTime(2026, 10, 20, 9),
+      ),
+    );
+
+    final tempDir = await Directory.systemTemp.createTemp('wt_pin_it_');
+    addTearDown(() async {
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    });
+    final pinRepo = PinRepositoryImpl(
+      FilePinStore(directory: () async => tempDir),
+      iterations: 20,
+    );
+
+    await pinRepo.setPin('123456');
+    expect(await pinRepo.hasPin(), isTrue);
+    expect(await pinRepo.verifyPin('123456'), isTrue);
+
+    // 「忘记 PIN」：清掉凭据即可，数据库一个字节都不动。
+    await pinRepo.clearPin();
+    expect(await pinRepo.hasPin(), isFalse);
+    expect(
+      File('${tempDir.path}/${FilePinStore.fileName}').existsSync(),
+      isFalse,
+    );
+
+    final account = await db.accountDao.getById(accountId);
+    expect(account, isNotNull);
+    expect(account!.balanceMinor, 487655);
+    final txns = await db.transactionDao.watchByMonth(DateTime(2026, 10)).first;
+    expect(txns, hasLength(1));
+    expect(txns.first.amountMinor, 12345);
   });
 }
 

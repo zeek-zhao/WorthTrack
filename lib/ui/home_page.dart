@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'accounts/accounts_page.dart';
 import 'positions/positions_page.dart';
 import 'reports/reports_page.dart';
+import 'settings/settings_page.dart';
 import 'transactions/transactions_page.dart';
 
-/// 应用首页：底部导航（明细 / 报表 / 资产 / 投资）。
+/// 应用首页：底部导航（明细 / 报表 / 资产 / 投资 / 设置）。
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -27,6 +28,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ReportsPage(),
           AccountsPage(),
           PositionsPage(),
+          SettingsPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -52,6 +54,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: Icon(Icons.trending_up_outlined),
             selectedIcon: Icon(Icons.trending_up),
             label: '投资',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: '设置',
           ),
         ],
       ),
