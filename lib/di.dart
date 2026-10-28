@@ -7,11 +7,13 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'data/db/app_database.dart';
+import 'data/pin/pin_store.dart';
 import 'data/price/tencent_price_provider.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/budget_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
 import 'data/repositories/net_worth_repository_impl.dart';
+import 'data/repositories/pin_repository_impl.dart';
 import 'data/repositories/position_repository_impl.dart';
 import 'data/repositories/recurring_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
@@ -20,6 +22,7 @@ import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/price_provider.dart';
 import 'domain/repositories/net_worth_repository.dart';
+import 'domain/repositories/pin_repository.dart';
 import 'domain/repositories/position_repository.dart';
 import 'domain/repositories/recurring_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
@@ -83,6 +86,12 @@ final netWorthRepositoryProvider = Provider<NetWorthRepository>((ref) {
     db.transactionDao,
     ref.watch(positionRepositoryProvider),
   );
+});
+
+/// 启动 PIN 锁仓储（M3-#17）：凭据存应用支持目录的独立 JSON 文件，
+/// **不写数据库**——忘记 PIN 重置只需删文件，账目数据分毫不动。
+final pinRepositoryProvider = Provider<PinRepository>((ref) {
+  return PinRepositoryImpl(FilePinStore());
 });
 
 /// 生产环境连接：应用支持目录下的 worthtrack.sqlite3。
