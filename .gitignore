@@ -2,6 +2,7 @@
 
 # --- WorkBuddy / 本地工具 ---
 .workbuddy/
+.workbuddy-ai/
 
 # --- IDE ---
 .idea/
