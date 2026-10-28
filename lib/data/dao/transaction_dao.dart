@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'account_dao.dart';
 import '../db/app_database.dart';
+import '../../domain/net_worth.dart';
 import '../../domain/stats.dart';
 
 part 'transaction_dao.g.dart';
@@ -128,6 +129,23 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
     ]);
     return query.watch().map(
       (rows) => rows.map((r) => r.readTable(transactions)).toList(),
+    );
+  }
+
+  /// 监听全部交易的轻量投影（issue #16 净资产回溯用）。
+  ///
+  /// 只取时间/类型/金额，不联表、不带备注；交易表规模在万行以内，
+  /// 整表读出后由 Dart 端回溯，避免在 SQL 里做窗口函数。
+  Stream<List<NetWorthTxn>> watchNetWorthInputs() {
+    return select(transactions).watch().map(
+      (rows) => [
+        for (final r in rows)
+          NetWorthTxn(
+            occurredAt: r.occurredAt,
+            type: r.type,
+            amountMinor: r.amountMinor,
+          ),
+      ],
     );
   }
 

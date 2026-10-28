@@ -9,8 +9,10 @@ import 'package:worthtrack/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/data/price/tencent_price_provider.dart';
 import 'package:worthtrack/data/repositories/budget_repository_impl.dart';
+import 'package:worthtrack/data/repositories/net_worth_repository_impl.dart';
 import 'package:worthtrack/data/repositories/position_repository_impl.dart';
 import 'package:worthtrack/data/repositories/recurring_repository_impl.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 
 import '../test/helpers/sqlite3_loader.dart';
 
@@ -336,4 +338,107 @@ void main() {
     expect(v.priceMinor, 170000); // 沿用缓存价
     expect(v.marketValueMinor, 25500000);
   });
+
+  testWidgets('净资产：支出降低、转账不变、投资市值计入且曲线末点等于当前值', (tester) async {
+    final created = DateTime(2026, 8, 1);
+    final bank = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '工资卡',
+        type: AccountType.bank,
+        balanceMinor: const Value(1000000), // ¥10000.00
+        createdAt: Value(created),
+      ),
+    );
+    final cash = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '零钱',
+        type: AccountType.cash,
+        createdAt: Value(created),
+      ),
+    );
+    await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '券商',
+        type: AccountType.investment,
+        balanceMinor: const Value(300000),
+        createdAt: Value(created),
+      ),
+    );
+
+    final positionRepo = PositionRepositoryImpl(
+      db.positionDao,
+      _NoopPriceProvider(),
+    );
+    final netWorthRepo = NetWorthRepositoryImpl(
+      db.accountDao,
+      db.transactionDao,
+      positionRepo,
+      now: () => DateTime(2026, 10, 28),
+    );
+
+    // 初始：现金类 10000，投资账户余额 3000 不计入。
+    var overview = await netWorthRepo.watchOverview(months: 3).first;
+    expect(overview.cashMinor, 1000000);
+    expect(overview.investmentMinor, 0);
+    expect(overview.netWorthMinor, 1000000);
+    expect(overview.investmentAccountBalanceMinor, 300000);
+
+    // 转账：内部搬运，净资产不变。
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.transfer,
+        accountId: bank,
+        toAccountId: cash,
+        amountMinor: 200000,
+        occurredAt: DateTime(2026, 10, 5),
+      ),
+    );
+    overview = await netWorthRepo.watchOverview(months: 3).first;
+    expect(overview.netWorthMinor, 1000000);
+
+    // 支出：净资产下降。
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: bank,
+        amountMinor: 2580,
+        occurredAt: DateTime(2026, 10, 6),
+      ),
+    );
+    overview = await netWorthRepo.watchOverview(months: 3).first;
+    expect(overview.cashMinor, 997420);
+
+    // 加一只持仓并给价：市值计入净资产（本月才建仓，历史月份不计入）。
+    await db.positionDao.createPosition(
+      PositionsCompanion.insert(
+        market: Market.sh,
+        code: '600519',
+        name: '贵州茅台',
+        sharesCent: 15000,
+        costPriceMinor: 160000,
+        createdAt: Value(DateTime(2026, 10, 2)),
+      ),
+    );
+    await positionRepo.setPrice(
+      market: Market.sh,
+      code: '600519',
+      priceMinor: 170000,
+    );
+    overview = await netWorthRepo.watchOverview(months: 3).first;
+    expect(overview.investmentMinor, 25500000);
+    expect(overview.netWorthMinor, 997420 + 25500000);
+
+    // 曲线末点（本月末）等于当前净资产；8、9 月不含本月才建的仓位。
+    expect(overview.series.last.month, DateTime(2026, 10));
+    expect(overview.series.last.netWorthMinor, overview.netWorthMinor);
+    expect(overview.series.first.month, DateTime(2026, 8));
+    expect(overview.series.first.netWorthMinor, 1000000);
+  });
+}
+
+/// 净资产用例不涉及行情，用空实现占位。
+class _NoopPriceProvider implements PriceProvider {
+  @override
+  Future<Map<String, Quote>> fetchQuotes(List<String> symbols) async =>
+      const {};
 }

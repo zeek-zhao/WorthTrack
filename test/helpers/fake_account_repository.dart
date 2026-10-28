@@ -17,6 +17,12 @@ class FakeAccountRepository implements AccountRepository {
     _controller.add(accounts);
   }
 
+  /// 账户变更广播源（供假净资产仓储联动重算）。
+  Stream<List<Account>> get changes => _controller.stream;
+
+  /// 当前账户列表（假净资产仓储按它推算总览）。
+  List<Account> get current => _accounts;
+
   @override
   Stream<List<Account>> watchAccounts() => replayStream(_accounts, _controller);
 
