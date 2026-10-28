@@ -633,6 +633,126 @@ void main() {
     expect(lines[1], '2026-10-20 12:00,支出,工资卡,餐饮,25.80,"午饭,加饮料"');
     expect(lines[2], '2026-10-21 09:00,转账,工资卡 → 零钱,,1000.00,');
   });
+
+  // ===== M4 碰钱路径（issue #21）=====
+
+  /// 编辑交易是最容易把余额算错的一条路径：必须「先冲销旧影响、再应用新影响」，
+  /// 换账户时两个账户都得回到正确值，改类型时符号也要跟着翻。
+  testWidgets('编辑交易：改金额 + 换账户 + 改类型，余额始终正确', (tester) async {
+    final bank = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '工资卡',
+        type: AccountType.bank,
+        balanceMinor: const Value(1000000), // ¥10000.00
+      ),
+    );
+    final cash = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '零钱',
+        type: AccountType.cash,
+        balanceMinor: const Value(100000), // ¥1000.00
+      ),
+    );
+    final food = await db.categoryDao.createCategory(
+      CategoriesCompanion.insert(name: '餐饮', kind: CategoryKind.expense),
+    );
+
+    final txnId = await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: bank,
+        categoryId: food,
+        amountMinor: 2580, // ¥25.80
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    expect((await db.accountDao.getById(bank))!.balanceMinor, 997420);
+
+    // 改成「从零钱付 ¥30.00」：工资卡要完全冲销，零钱要扣掉新金额。
+    await db.transactionDao.updateWithBalanceAdjust(
+      txnId,
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: cash,
+        categoryId: food,
+        amountMinor: 3000,
+        note: '改成零钱付',
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    expect((await db.accountDao.getById(bank))!.balanceMinor, 1000000);
+    expect((await db.accountDao.getById(cash))!.balanceMinor, 97000);
+
+    // 再改成「收入 ¥30.00」：先退掉支出再记收入，零钱应回到 1030.00。
+    await db.transactionDao.updateWithBalanceAdjust(
+      txnId,
+      NewTransaction(
+        type: TxnType.income,
+        accountId: cash,
+        amountMinor: 3000,
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    expect((await db.accountDao.getById(cash))!.balanceMinor, 103000);
+    expect((await db.accountDao.getById(bank))!.balanceMinor, 1000000);
+
+    // 全表只有一条流水（编辑不是「新增一条」）。
+    final txns = await db.transactionDao.watchByMonth(DateTime(2026, 10)).first;
+    expect(txns, hasLength(1));
+    expect(txns.single.type, TxnType.income);
+  });
+
+  /// 验收标准 5「断网状态下以缓存价查看投资盈亏仍然可用」的自动化版本：
+  /// 行情整批失败时一条缓存都不许动，记账链路也不受影响。
+  testWidgets('断网刷新行情 → 缓存价不动、市值照算、记账照常', (tester) async {
+    final repo = PositionRepositoryImpl(
+      db.positionDao,
+      TencentPriceProvider(
+        client: MockClient(
+          (_) async => throw SocketException('network is unreachable'),
+        ),
+      ),
+    );
+    await repo.createPosition(
+      market: Market.sh,
+      code: '600519',
+      name: '贵州茅台',
+      sharesCent: 15000, // 150.00 份
+      costPriceMinor: 160000,
+    );
+    await repo.setPrice(market: Market.sh, code: '600519', priceMinor: 170000);
+
+    final report = await repo.refreshPrices();
+    expect(report.failed, 1);
+    expect(report.updated, 0);
+    expect(report.suspended, 0);
+
+    // 缓存价原封不动，市值与盈亏仍可计算。
+    final cached = await db.positionDao.getPrice('sh600519');
+    expect(cached!.priceMinor, 170000);
+    final valuation = (await repo.watchValuations().first).single;
+    expect(valuation.priceMinor, 170000);
+    expect(valuation.marketValueMinor, 25500000); // 150 × 1700.00 元
+    expect(valuation.profitMinor, 25500000 - 24000000);
+
+    // 断网不影响记账。
+    final accountId = await db.accountDao.createAccount(
+      AccountsCompanion.insert(
+        name: '现金',
+        type: AccountType.cash,
+        balanceMinor: const Value(100000),
+      ),
+    );
+    await db.transactionDao.createWithBalanceUpdate(
+      NewTransaction(
+        type: TxnType.expense,
+        accountId: accountId,
+        amountMinor: 2580,
+        occurredAt: DateTime(2026, 10, 20, 12),
+      ),
+    );
+    expect((await db.accountDao.getById(accountId))!.balanceMinor, 97420);
+  });
 }
 
 /// 净资产用例不涉及行情，用空实现占位。
