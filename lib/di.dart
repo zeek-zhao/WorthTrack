@@ -11,6 +11,7 @@ import 'data/price/tencent_price_provider.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/budget_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
+import 'data/repositories/net_worth_repository_impl.dart';
 import 'data/repositories/position_repository_impl.dart';
 import 'data/repositories/recurring_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
@@ -18,6 +19,7 @@ import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/budget_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/price_provider.dart';
+import 'domain/repositories/net_worth_repository.dart';
 import 'domain/repositories/position_repository.dart';
 import 'domain/repositories/recurring_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
@@ -70,6 +72,16 @@ final positionRepositoryProvider = Provider<PositionRepository>((ref) {
   return PositionRepositoryImpl(
     ref.watch(appDatabaseProvider).positionDao,
     ref.watch(priceProviderProvider),
+  );
+});
+
+/// 资产总览仓储（M3-#16）：账户 + 持仓 + 交易三条流合成净资产。
+final netWorthRepositoryProvider = Provider<NetWorthRepository>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return NetWorthRepositoryImpl(
+    db.accountDao,
+    db.transactionDao,
+    ref.watch(positionRepositoryProvider),
   );
 });
 

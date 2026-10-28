@@ -5,6 +5,7 @@ import 'package:worthtrack/app.dart';
 import 'package:worthtrack/di.dart';
 
 import 'helpers/fake_account_repository.dart';
+import 'helpers/fake_net_worth_repository.dart';
 import 'helpers/fake_position_repository.dart';
 import 'helpers/fake_transaction_repository.dart';
 
@@ -15,6 +16,7 @@ void main() {
   late FakeBudgetRepository budgetRepo;
   late FakeRecurringRepository recurringRepo;
   late FakePositionRepository positionRepo;
+  late FakeNetWorthRepository netWorthRepo;
 
   setUp(() {
     accountRepo = FakeAccountRepository();
@@ -23,6 +25,7 @@ void main() {
     budgetRepo = FakeBudgetRepository();
     recurringRepo = FakeRecurringRepository();
     positionRepo = FakePositionRepository();
+    netWorthRepo = FakeNetWorthRepository();
   });
 
   tearDown(() {
@@ -32,6 +35,7 @@ void main() {
     budgetRepo.dispose();
     recurringRepo.dispose();
     positionRepo.dispose();
+    netWorthRepo.dispose();
   });
 
   testWidgets('应用启动进入底部导航（明细/报表/资产/投资），真实 DI 被假仓储覆盖', (tester) async {
@@ -44,6 +48,7 @@ void main() {
           budgetRepositoryProvider.overrideWithValue(budgetRepo),
           recurringRepositoryProvider.overrideWithValue(recurringRepo),
           positionRepositoryProvider.overrideWithValue(positionRepo),
+          netWorthRepositoryProvider.overrideWithValue(netWorthRepo),
         ],
         child: const WorthTrackApp(),
       ),
@@ -68,7 +73,7 @@ void main() {
     // 切到资产页。
     await tester.tap(find.text('资产'));
     await tester.pumpAndSettle();
-    expect(find.text('总资产'), findsOneWidget);
+    expect(find.text('净资产'), findsOneWidget);
 
     // 切到投资页。
     await tester.tap(find.text('投资'));
