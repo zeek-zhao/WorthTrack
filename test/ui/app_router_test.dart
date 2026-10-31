@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:worthtrack/core/last_module_store.dart';
 import 'package:worthtrack/core/module/app_module.dart';
 import 'package:worthtrack/core/module/module_providers.dart';
+import 'package:worthtrack/core/providers.dart';
 import 'package:worthtrack/core/router.dart';
 
 import '../helpers/fake_module_state_repository.dart';
+import '../helpers/fake_pin_repository.dart';
 
 /// 一个自带二级页的最小模块，用来验证「每模块独立返回栈」。
 class _DemoModule extends AppModule {
@@ -86,11 +88,13 @@ void main() {
     WidgetTester tester, {
     String initialLocation = '/',
     LastModuleStore? store,
+    ValueNotifier<Set<ModuleId>?>? enabledIds,
   }) async {
     final router = createAppRouter(
       modules: modules,
       initialLocation: initialLocation,
       lastModuleStore: store,
+      enabledIds: enabledIds,
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
@@ -100,6 +104,8 @@ void main() {
           moduleStateRepositoryProvider.overrideWithValue(
             FakeModuleStateRepository(),
           ),
+          // 设置页要读 PIN 状态；测试里不能碰真实文件系统。
+          pinRepositoryProvider.overrideWithValue(FakePinRepository()),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -173,6 +179,54 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('WorthTrack'), findsOneWidget);
+  });
+
+  group('路由门禁（#45：停用模块后不可达，但设置页永远可达）', () {
+    testWidgets('模块被停用后，当前停留在该模块的页面自动退回 launcher', (tester) async {
+      final enabled = ValueNotifier<Set<ModuleId>?>({'demo', 'second'});
+      addTearDown(enabled.dispose);
+      await pumpRouter(tester, initialLocation: '/demo', enabledIds: enabled);
+      expect(find.text('demo-root'), findsOneWidget);
+
+      enabled.value = {'second'};
+      await tester.pumpAndSettle();
+
+      expect(find.text('WorthTrack'), findsOneWidget);
+      expect(find.text('demo-root'), findsNothing);
+    });
+
+    testWidgets('冷启动落在一个已停用的模块上时直接回 launcher', (tester) async {
+      final enabled = ValueNotifier<Set<ModuleId>?>({'second'});
+      addTearDown(enabled.dispose);
+      await pumpRouter(tester, initialLocation: '/demo', enabledIds: enabled);
+
+      expect(find.text('WorthTrack'), findsOneWidget);
+      expect(find.text('demo-root'), findsNothing);
+    });
+
+    testWidgets('开关还没读到时先放行，读到之后才判定', (tester) async {
+      final enabled = ValueNotifier<Set<ModuleId>?>(null);
+      addTearDown(enabled.dispose);
+      await pumpRouter(tester, initialLocation: '/demo', enabledIds: enabled);
+      expect(find.text('demo-root'), findsOneWidget);
+
+      enabled.value = const {};
+      await tester.pumpAndSettle();
+      expect(find.text('WorthTrack'), findsOneWidget);
+    });
+
+    testWidgets('停用全部模块后 /settings 仍然打得开（防死锁）', (tester) async {
+      final enabled = ValueNotifier<Set<ModuleId>?>(const {});
+      addTearDown(enabled.dispose);
+      final router = await pumpRouter(tester, enabledIds: enabled);
+
+      router.go('/settings');
+      await tester.pumpAndSettle();
+
+      // 没有退回 launcher：标题是设置页的。
+      expect(find.text('设置'), findsOneWidget);
+      expect(find.text('WorthTrack'), findsNothing);
+    });
   });
 
   test('模块按 defaultOrder 排序后成为 branch 顺序', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:worthtrack/di.dart';
+import 'package:worthtrack/core/providers.dart';
 import 'package:worthtrack/core/backup/backup.dart';
 import 'package:worthtrack/ui/settings/settings_section.dart';
 

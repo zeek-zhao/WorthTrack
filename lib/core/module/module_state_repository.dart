@@ -76,4 +76,22 @@ class ModuleStateRepository {
         .watch()
         .map((rows) => {for (final row in rows) row.moduleId: row.sortOrder});
   }
+
+  /// 一次性读取排序（模块管理页初始化用）。
+  Future<Map<ModuleId, int>> sortOrders() async {
+    final rows = await _db.select(_db.moduleStates).get();
+    return {for (final row in rows) row.moduleId: row.sortOrder};
+  }
+
+  /// 整批写入排序（上下移动一格 = 重写一遍完整顺序）。
+  ///
+  /// 写完整顺序而不是只改相邻两个值：混合状态（有的模块有记录、有的没有）
+  /// 才不会因为只改两项而出现并列，排序结果始终等于用户看到的列表。
+  Future<void> setSortOrders(Map<ModuleId, int> orders) {
+    return _db.transaction(() async {
+      for (final entry in orders.entries) {
+        await setSortOrder(entry.key, entry.value);
+      }
+    });
+  }
 }

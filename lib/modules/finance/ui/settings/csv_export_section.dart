@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:worthtrack/di.dart';
+import 'package:worthtrack/core/providers.dart';
 import 'package:worthtrack/modules/finance/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 import 'package:worthtrack/ui/settings/settings_section.dart';
 
 /// 设置页「数据导出」分组（issue #19）：把全部流水导成 CSV 给 Excel 用。
 ///
+/// 由 finance 模块通过 `settingsTiles` 贡献给系统设置页（#45）——
+/// 导出的是 finance 的数据，不该由 core 硬编码。
 /// 与备份分开摆，因为两者用途不同：备份是「出事能还原」，CSV 是「拿去算/存档」。
 class CsvExportSection extends ConsumerStatefulWidget {
   const CsvExportSection({super.key});

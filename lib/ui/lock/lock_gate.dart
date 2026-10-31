@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:worthtrack/di.dart';
+import 'package:worthtrack/core/providers.dart';
 import 'package:worthtrack/ui/lock/lock_screen.dart';
 
 /// 启动锁门卫（issue #17）：已设 PIN 时先出锁屏，解锁后才挂载主界面。

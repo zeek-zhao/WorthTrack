@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:worthtrack/di.dart';
+import 'package:worthtrack/core/providers.dart';
 import 'package:worthtrack/core/pin/pin_lock.dart';
 
 /// 锁屏（issue #17）：输满 6 位即校验，失败清空重输。

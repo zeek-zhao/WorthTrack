@@ -46,3 +46,4 @@ integration_test/.dart_tool/
 .pr_body.md
 .comment_*.md
 scripts/_tmp_*.py
+scripts/_tmp_*.sh

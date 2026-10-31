@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/di.dart';
 import 'package:worthtrack/core/backup/backup.dart';
+import 'package:worthtrack/core/module/module_providers.dart';
+import 'package:worthtrack/di.dart';
 import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
 
 import '../helpers/fake_backup_repository.dart';
 import '../helpers/fake_export_repository.dart';
 import '../helpers/fake_file_save_picker.dart';
+import '../helpers/fake_module_state_repository.dart';
 import '../helpers/fake_pin_repository.dart';
 
 /// issue #17：设置页开启/关闭/修改 PIN；issue #18：备份导出与恢复；
-/// issue #19：流水 CSV 导出。
+/// issue #19：流水 CSV 导出；issue #45：设置页拆分与模块贡献条目。
 void main() {
   late FakePinRepository fake;
   late FakeBackupRepository backupRepo;
   late FakeExportRepository exportRepo;
   late FakeFileSavePicker picker;
+  late FakeModuleStateRepository moduleStateRepo;
 
   setUp(() {
     fake = FakePinRepository();
     backupRepo = FakeBackupRepository();
     exportRepo = FakeExportRepository();
     picker = FakeFileSavePicker();
+    moduleStateRepo = FakeModuleStateRepository();
+  });
+
+  tearDown(() async {
+    await moduleStateRepo.dispose();
   });
 
   Future<void> pumpSettings(WidgetTester tester) async {
@@ -34,6 +42,8 @@ void main() {
           backupRepositoryProvider.overrideWithValue(backupRepo),
           exportRepositoryProvider.overrideWithValue(exportRepo),
           fileSavePickerProvider.overrideWithValue(picker),
+          // 设置页会读「哪些模块启用」来决定显示哪些模块条目（#45）。
+          moduleStateRepositoryProvider.overrideWithValue(moduleStateRepo),
         ],
         child: const MaterialApp(home: SettingsPage()),
       ),

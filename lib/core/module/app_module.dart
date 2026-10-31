@@ -67,10 +67,11 @@ class ModuleContext {
 /// | [defaultOrder] | 首次启用时的 launcher 排序 | 首次启用 |
 /// | [dependsOn] | 依赖的模块 id，被依赖者停用时本模块一并隐藏 | 装配、停用 |
 /// | [ownedTables] | 拥有的表名（与 `@DriftDatabase(tables:)` 一一对应） | 架构测试、清理 |
+/// | [tableLabels] | 表名的中文标签（清理确认框用） | 模块管理页 |
 /// | [routes] | 模块内的路由（go_router branch） | 装配 |
 /// | [settingsTiles] | 向**系统设置页**贡献的条目 | 设置页 |
 /// | [onEnable] / [onDisable] | 启停钩子，**不得删数据** | 模块管理页 |
-/// | [onClear] | 清理数据，**必须**只删自己的表 | 模块管理页 |
+/// | [onClear] | 清理后的收尾（删表由 core 按 [ownedTables] 做） | 模块管理页 |
 ///
 /// 注意「停用」与「清理」是两个动词：停用只隐藏、数据一行不动；清理才物理删除。
 abstract class AppModule {
@@ -94,6 +95,11 @@ abstract class AppModule {
   /// 本模块拥有的表名，必须与 `@DriftDatabase(tables: [...])` 中的真实表一一对应。
   Set<String> get ownedTables => const <String>{};
 
+  /// [ownedTables] 的中文标签，用于「清理数据」确认框里的条数说明。
+  ///
+  /// 没写的表直接显示表名——**不猜**，猜错比露英文更糟。
+  Map<String, String> get tableLabels => const <String, String>{};
+
   /// 模块内路由。装配层把它们挂到 go_router 的独立 branch，各自保留返回栈。
   List<RouteBase> get routes => const <RouteBase>[];
 
@@ -113,6 +119,10 @@ abstract class AppModule {
   /// 停用钩子。**数据一行不动**，只允许清理内存态、取消订阅。
   Future<void> onDisable(ModuleContext context) async {}
 
-  /// 清理钩子。物理删除 [ownedTables] 的数据，由模块自己实现。
+  /// 清理钩子：**删数据由 core 做**（按 [ownedTables]，保证不越界），
+  /// 这里只做删完之后的收尾——清内存态、重置缓存、取消订阅。
+  ///
+  /// 之所以不让模块自己删表：那样「只删自己的表」就只能靠自觉，
+  /// 而它恰恰是 #45 的验收标准之一。core 里对应 `ModuleDataCleaner.clearModule`。
   Future<void> onClear(ModuleContext context) async {}
 }
