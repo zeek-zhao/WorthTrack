@@ -7,9 +7,9 @@
 
 ## 0. 一句话现状
 
-`main = b7e9c5f`，工作区干净，与 origin 同步；**v0.4.0 已发布**（APK + Linux 包）；
-M1–M4 共 22 个 issue 全部关闭；**v2.0 的 16 条 issue 已建（#41–#56），分支 `feat/m5-modular` 已就位，
-但代码一行都还没写**。
+`main = f680786`，工作区干净，与 origin 同步；**v0.4.0 已发布**（APK + Linux 包），v1.0.0 发版说明已写好待打 tag；
+M1–M4 共 22 个 issue 全部关闭；**v2.0 的 16 条 issue 已建（#41–#56）**；
+M5 已开工：**#41 完成**（core 模块契约，PR #57 合入 `feat/m5-modular`），下一步 #42。
 
 ---
 
@@ -86,6 +86,8 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 5. **CI 三关硬门槛**：`dart format --set-exit-if-changed` + `flutter analyze --fatal-warnings` + `flutter test` 全绿。
 6. **`integration_test/` 只允许一个文件**（多文件时第二个应用启动必挂，见 troubleshooting 1.5）。
 7. **每个 issue 一个分支 + 一个 PR**，Conventional Commits，合并前逐 step 核对 CI（`scripts/job_steps.sh`），不能只看总时长。
+   **v2.0 起改为两级分支**：`issue 分支 → feat/m5-modular → main`，M5 收口时整体 PR 到 main。
+   注意：合入非默认分支时 GitHub **不会**自动关闭 issue（`Closes` 只认默认分支），要手动关并留痕。
 8. **新增 DAO 必须注册进 `@DriftDatabase(daos:)`**，否则 `.g.dart` 静默不生成 getter（troubleshooting 2.5）。
 9. **建 PR 的脚本只 POST 不查重**，别重复跑 `pr_pipeline.py`。
 10. **v2.0 起禁止出现「动态加载」四个字**，正确说法是「模块化装配 + 运行时门禁」（原因见 §6）。
