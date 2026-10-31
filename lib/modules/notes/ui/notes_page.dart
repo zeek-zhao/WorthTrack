@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/modules/notes/domain/note_ref.dart';
 import 'package:worthtrack/modules/notes/domain/note_text.dart';
 import 'package:worthtrack/modules/notes/notes_providers.dart';
 import 'package:worthtrack/modules/notes/ui/note_edit_dialog.dart';
@@ -12,8 +14,14 @@ import 'package:worthtrack/modules/notes/ui/note_edit_dialog.dart';
 /// 免得「排序逻辑」散落在 UI 与 SQL 两处、最后谁也不知道以谁为准。
 ///
 /// 搜索在 Dart 端过滤（[noteMatchesKeyword]），不走 SQL `LIKE`——原因见该函数注释。
+///
+/// [noteRef] 非空时进入「相关笔记」模式：只列挂在该目标下的笔记。
+/// 入口来自其他模块的路由跳转（如持仓页的「相关笔记」）——
+/// 模块之间不 import，只传路径与查询参数。
 class NotesPage extends ConsumerStatefulWidget {
-  const NotesPage({super.key});
+  const NotesPage({super.key, this.noteRef});
+
+  final NoteRef? noteRef;
 
   @override
   ConsumerState<NotesPage> createState() => _NotesPageState();
@@ -47,10 +55,20 @@ class _NotesPageState extends ConsumerState<NotesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final notes = ref.watch(notesProvider);
+    final noteRef = widget.noteRef;
+    final notes = noteRef == null
+        ? ref.watch(notesProvider)
+        : ref.watch(notesForRefProvider(noteRef));
 
     return Scaffold(
       appBar: AppBar(
+        // 桌面端没有系统返回键，模块页必须自带回 launcher 的出口。
+        leading: IconButton(
+          key: const Key('notes-home'),
+          tooltip: '返回首页',
+          icon: const Icon(Icons.grid_view_rounded),
+          onPressed: () => context.go('/'),
+        ),
         title: _searching
             ? TextField(
                 key: const Key('notes-search-field'),
@@ -63,7 +81,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                 ),
                 onChanged: (value) => setState(() => _keyword = value),
               )
-            : const Text('记事本'),
+            : Text(noteRef == null ? '记事本' : '相关笔记'),
         actions: [
           IconButton(
             key: const Key('notes-search-toggle'),
@@ -72,12 +90,32 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             onPressed: _toggleSearch,
           ),
         ],
+        bottom: noteRef == null
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Chip(
+                      key: const Key('notes-ref-chip'),
+                      avatar: const Icon(Icons.link, size: 16),
+                      label: Text(noteRef.display),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                      deleteButtonTooltipMessage: '看全部笔记',
+                      // 去掉筛选就是回本模块根路由，不需要另开页面。
+                      onDeleted: () => context.go('/notes'),
+                    ),
+                  ),
+                ),
+              ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('notes-add'),
         // IndexedStack 里多个模块页面同时存活，默认 hero tag 会撞车。
         heroTag: 'notes-fab',
-        onPressed: () => showNoteEditor(context),
+        onPressed: () => showNoteEditor(context, noteRef: noteRef),
         icon: const Icon(Icons.edit_outlined),
         label: const Text('写一条'),
       ),
@@ -89,13 +127,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             for (final note in all)
               if (noteMatchesKeyword(note.title, note.body, _keyword)) note,
           ];
-          if (list.isEmpty) {
-            // 「一条笔记都没有」和「搜不到」是两件不同的事，
-            // 用同一句空态文案会让用户以为笔记丢了。
-            return _keyword.trim().isEmpty
-                ? const _EmptyState()
-                : _NoMatchState(keyword: _keyword.trim());
-          }
+          if (list.isEmpty) return _emptyState(noteRef);
           return ListView.separated(
             padding: const EdgeInsets.only(bottom: 88),
             itemCount: list.length,
@@ -106,6 +138,15 @@ class _NotesPageState extends ConsumerState<NotesPage> {
         },
       ),
     );
+  }
+
+  /// 「一条都没有」「搜不到」「这个标的还没有笔记」是三件不同的事，
+  /// 共用一句文案会让用户以为笔记丢了。
+  Widget _emptyState(NoteRef? noteRef) {
+    final keyword = _keyword.trim();
+    if (keyword.isNotEmpty) return _NoMatchState(keyword: keyword);
+    if (noteRef != null) return _RefEmptyState(target: noteRef);
+    return const _EmptyState();
   }
 }
 
@@ -151,12 +192,27 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return _CenteredHint(
       icon: Icons.sticky_note_2_outlined,
       title: '想到什么就写一条',
       subtitle: '不用起标题，也不用分类',
-      color: theme.colorScheme.outline,
+      color: Theme.of(context).colorScheme.outline,
+    );
+  }
+}
+
+class _RefEmptyState extends StatelessWidget {
+  const _RefEmptyState({required this.target});
+
+  final NoteRef target;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CenteredHint(
+      icon: Icons.sticky_note_2_outlined,
+      title: '还没有关于「${target.display}」的笔记',
+      subtitle: '点右下角写一条，会自动关联',
+      color: Theme.of(context).colorScheme.outline,
     );
   }
 }
@@ -168,12 +224,11 @@ class _NoMatchState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return _CenteredHint(
       icon: Icons.search_off,
       title: '没有找到「$keyword」',
       subtitle: '换个词试试，搜索范围是标题和正文',
-      color: theme.colorScheme.outline,
+      color: Theme.of(context).colorScheme.outline,
     );
   }
 }
