@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/di.dart';
 import 'package:worthtrack/modules/finance/domain/recurring_logic.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 
 /// 周期账单页（issue #11）：规则列表 + 新建/编辑。
 class RecurringPage extends ConsumerWidget {
