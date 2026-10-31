@@ -104,7 +104,7 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 | M4 备份与打磨 | ✅ | v0.4.0（备份恢复 #18、CSV #19、集成测试补齐 #21、文档 #22） |
 
 - 最新 Release **v0.4.0**：`app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**299 个单测/Widget + 13 条集成测试**（这是 v2.0 搬迁的锚点，见 §7）
+- 测试基线：**316 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 来自 #41 模块契约；这是 v2.0 搬迁的锚点，见 §7）
 
 ---
 
@@ -177,7 +177,7 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 | 序 | 任务 | 验收标准 |
 |---|---|---|
 | 1 | #41 抽 `core/` + 定义 `AppModule` / `ModuleContext` | 契约字段齐（id/name/icon/defaultOrder/dependsOn/ownedTables/routes/settingsTiles/onEnable/onDisable/onClear）；模块不 import `di.dart` |
-| 2 | #42 finance 整体迁入 `lib/modules/finance/` | **纯重构提交**：`git mv` 保留历史、测试数精确 = 299、提交内无 `feat:` |
+| 2 | #42 finance 整体迁入 `lib/modules/finance/` | **纯重构提交**：`git mv` 保留历史、测试数精确 = **316**（不是 299，299 是 v0.4.0 基线）、提交内无 `feat:` |
 | 3 | #43 schema v2：`module_state` 表 + 首次 `onUpgrade` | 迁移测试：造 v1 库 → 升级 → 逐表比对无损 |
 | 4 | #44 launcher + `go_router` 导航 | 每模块独立返回栈；冷启动恢复上次模块；30 分钟超时回 launcher；「记一笔」始终 1 步 |
 | 5 | #45 模块管理页 + 设置页拆分 | 停用/清理是两个独立入口；**停用 finance 后仍能进模块管理页重新启用** |
