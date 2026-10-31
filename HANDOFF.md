@@ -7,9 +7,8 @@
 
 ## 0. 一句话现状
 
-`main = f680786`，工作区干净，与 origin 同步；**v0.4.0 已发布**（APK + Linux 包），v1.0.0 发版说明已写好待打 tag；
-M1–M4 共 22 个 issue 全部关闭；**v2.0 的 16 条 issue 已建（#41–#56）**；
-M5 已开工：**#41 完成**（core 模块契约，PR #57 合入 `feat/m5-modular`），下一步 #42。
+`main = f680786`（已发 **v1.0.0**），集成分支 `feat/m5-modular` 上 M5 进度 **2/6**：
+**#41 契约完成、#42 finance 搬迁完成**（PR #57 / #58），测试基线 **316**，下一步 #43（schema v2 + 首次 migration）。
 
 ---
 
@@ -45,33 +44,38 @@ bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 299 个全
 ```
 lib/
   main.dart / app.dart          # 入口、主题（Material 3，跟随系统深浅色）
-  di.dart                       # ⚠️ 全量 Riverpod Provider 注册（单点，模块化后禁止模块 import 它）
-  core/money.dart               # 分↔元转换
-  core/stream_utils.dart        # combineLatest2/3，组合多个 drift watch 流
-  domain/                       # 纯逻辑，无 Flutter 依赖
-    position_valuation.dart     #   持仓市值/成本/盈亏 + 汇总
-    net_worth.dart              #   ⚠️ 净资产口径 + 历史曲线反向回溯
-    price_provider.dart         #   Quote / QuoteStatus / PriceRefreshReport
-    recurring_logic.dart        #   周期账单补生成
-    stats.dart                  #   报表聚合
-    backup.dart / csv_export.dart / pin_lock.dart
-    repositories/*.dart         # 10 个仓储接口
-  data/
-    db/app_database.dart        # ⚠️ 7 张表 + 枚举 + AppDatabase 必须同文件，schemaVersion = 1
-    dao/*.dart                  # 6 个 DAO（account/transaction/category/budget/recurring/position）
-    price/tencent_price_provider.dart   # 腾讯行情（GBK 解码，字段[3]现价/[30]时间）
-    backup/database_backup_repository.dart  # VACUUM INTO 导出 / ATTACH + 单事务恢复
-    pin/pin_store.dart          # PIN 凭据落 <应用支持目录>/pin_lock.json（不进 DB）
-    repositories/*_impl.dart    # 10 个实现
-  ui/
-    home_page.dart              # ⚠️ IndexedStack + 5 个硬编码 tab（v2.0 要拆成 launcher）
-    transactions/ reports/ accounts/ positions/ recurring/ lock/ settings/
-test/                           # 299 个单测 + Widget 测试
-integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 8）
+  di.dart                       # ⚠️ 全量 Riverpod Provider 注册（单点，模块禁止 import 它）
+  core/                         # 共享内核（core 级，不属任何模块）
+    money.dart                  #   分↔元转换
+    stream_utils.dart           #   combineLatest2/3，组合多个 drift watch 流
+    module/app_module.dart      #   ⚠️ AppModule 契约 + ModuleContext + ModuleLogger（#41）
+    module/module_registry.dart #   ⚠️ appModules 注册表 + validateModuleRegistry 校验（#41）
+  data/db/app_database.dart     # ⚠️ 全模块装配点：7 张表 + 枚举 + AppDatabase 同文件，schemaVersion = 1
+  modules/finance/              # ← #42 搬迁后的位置
+    domain/                     #   纯逻辑：position_valuation / net_worth / price_provider /
+                                #   recurring_logic / stats / backup / csv_export / pin_lock
+                                #   repositories/*.dart（10 个仓储接口）
+    data/
+      dao/*.dart                #   6 个 DAO（account/transaction/category/budget/recurring/position）
+      repositories/*_impl.dart  #   10 个实现
+      price/tencent_price_provider.dart  # 腾讯行情（GBK 解码，字段[3]现价/[30]时间）
+      backup/database_backup_repository.dart  # VACUUM INTO / ATTACH + 单事务恢复
+      pin/pin_store.dart        #   PIN 凭据落 <应用支持目录>/pin_lock.json（不进 DB）
+      files/file_save_picker.dart
+    ui/{transactions,reports,accounts,positions,recurring}/
+  ui/                           # core 级外壳
+    home_page.dart              # ⚠️ IndexedStack + 5 个硬编码 tab（#44 要拆成 launcher）
+    lock/ settings/             #   PIN 锁屏、系统设置（#45 要拆分）
+test/                           # 316 个单测 + Widget 测试
+integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
 docs/{ai-changelog,troubleshooting,issues-backlog,money-paths-coverage}.md
 wiki/                           # 需求与流程的唯一权威来源（GitHub wiki 的副本）
-scripts/                        # 31 个流水线/环境脚本，见 §9
+scripts/                        # 32 个流水线/环境脚本，见 §9
 ```
+
+**⚠️ 导入风格**：`lib/` 内一律用 `package:worthtrack/...` 绝对路径（#42 统一），
+不要写相对 `../`——历史上 `lib/domain/repositories/` 里有 4 处写成 `../../../data/db`，
+实际指向仓库根，潜伏了很久才在搬迁时暴露。
 
 **当前 7 张表**：accounts / categories / transactions / budgets / recurring_rules / positions / price_cache。
 
@@ -103,7 +107,8 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 | M3 投资跟踪 | ✅ | v0.3.0（持仓、行情、缓存兜底、净资产、PIN 锁） |
 | M4 备份与打磨 | ✅ | v0.4.0（备份恢复 #18、CSV #19、集成测试补齐 #21、文档 #22） |
 
-- 最新 Release **v0.4.0**：`app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
+- 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
+  `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
 - 测试基线：**316 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 来自 #41 模块契约；这是 v2.0 搬迁的锚点，见 §7）
 
 ---
