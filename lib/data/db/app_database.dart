@@ -6,6 +6,7 @@ import 'package:worthtrack/modules/finance/data/dao/category_dao.dart';
 import 'package:worthtrack/modules/finance/data/dao/position_dao.dart';
 import 'package:worthtrack/modules/finance/data/dao/recurring_dao.dart';
 import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/notes/data/dao/note_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -145,6 +146,37 @@ class PriceCache extends Table {
   Set<Column> get primaryKey => {symbol};
 }
 
+/// 笔记表（**notes 模块拥有**）。
+///
+/// 纯文本 + 轻量 Markdown，不做富文本、不做图片、不做附件（v2.0 明确不做）。
+/// 搜索在 #48 做，这里只保证「写进去、按时间取出来」是正确的。
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 标题可为空：随手记一句时正文就够，列表里退化显示正文首行。
+  TextColumn get title => text().withLength(min: 0, max: 200)();
+
+  /// 正文，纯文本（Markdown 语法由渲染层解释，存储层不解析）。
+  TextColumn get body => text().withDefault(const Constant(''))();
+
+  /// 置顶。排序时置顶恒在前。
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
+  /// 弱引用：关联对象的类型（如 `position` / `account`），**不建外键**。
+  ///
+  /// 被引用方被删或所属模块被停用/清理时，这里只会变成悬空字符串，
+  /// 不会破坏任何完整性约束——这正是弱引用的目的。
+  TextColumn get refType => text().nullable()();
+
+  /// 弱引用：关联对象的标识（如证券代码 `sh600519`、账户 id 的字符串形式）。
+  TextColumn get refId => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 最后修改时间。**排序与「最近改动」都看这一列**，由仓储在写入时维护。
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// 模块开关状态表（**core 拥有**，不属任何模块）。
 ///
 /// 存的是**用户配置**，所以入库、随备份走；
@@ -183,6 +215,7 @@ class ModuleStates extends Table {
     RecurringRules,
     Positions,
     PriceCache,
+    Notes,
     ModuleStates,
   ],
   daos: [
@@ -192,13 +225,14 @@ class ModuleStates extends Table {
     BudgetDao,
     RecurringDao,
     PositionDao,
+    NoteDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   // 必须是 getter 而不是字段初始化器：字段初始化器里访问不到 this 的成员，
   // 而 onUpgrade 需要 `moduleStates` 这个生成的表 getter。
@@ -213,6 +247,12 @@ class AppDatabase extends _$AppDatabase {
       // 这一跳仍然要执行。
       if (from < 2) {
         await m.createTable(moduleStates);
+      }
+      // v2 → v3（#47）：新增 notes 表。同样是纯加表，不动任何已有表与数据。
+      // 从 v1 直接升上来的库会连跳两级，两个分支都会执行到——这正是用
+      // `from < N` 而不是 `from == N-1` 的原因。
+      if (from < 3) {
+        await m.createTable(notes);
       }
     },
   );
