@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'di.dart';
-import 'ui/home_page.dart';
-import 'ui/lock/lock_gate.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/ui/home_page.dart';
+import 'package:worthtrack/ui/lock/lock_gate.dart';
 
 /// 应用根 Widget：Material 3 + 中文 locale。
 /// 底部导航：明细 / 报表 / 资产 / 投资 / 设置。

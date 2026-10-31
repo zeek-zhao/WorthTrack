@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../di.dart';
-import '../../domain/pin_lock.dart';
-import 'backup_section.dart';
-import 'csv_export_section.dart';
-import 'pin_dialogs.dart';
-import 'settings_section.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/pin_lock.dart';
+import 'package:worthtrack/ui/settings/backup_section.dart';
+import 'package:worthtrack/ui/settings/csv_export_section.dart';
+import 'package:worthtrack/ui/settings/pin_dialogs.dart';
+import 'package:worthtrack/ui/settings/settings_section.dart';
 
 /// 设置页：安全 / 备份与恢复 / 数据导出 / 关于四组。
 class SettingsPage extends ConsumerStatefulWidget {

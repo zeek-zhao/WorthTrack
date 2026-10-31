@@ -1,4 +1,4 @@
-import '../net_worth.dart';
+import 'package:worthtrack/domain/net_worth.dart';
 
 /// 资产总览领域接口（issue #16）。
 ///

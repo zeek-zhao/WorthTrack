@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../data/db/app_database.dart';
-import '../../data/dao/transaction_dao.dart';
-import '../../di.dart';
-import 'transaction_edit_dialog.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/ui/transactions/transaction_edit_dialog.dart';
 
 /// 明细页：按月流水列表，支持关键词搜索与类型/账户/分类组合筛选（issue #12）。
 class TransactionsPage extends ConsumerStatefulWidget {

@@ -1,4 +1,4 @@
-import '../stats.dart';
+import 'package:worthtrack/domain/stats.dart';
 
 /// 预算领域接口（issue #10）。
 abstract class BudgetRepository {

@@ -4,7 +4,7 @@ import 'dart:math' show min;
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:http/http.dart' as http;
 
-import '../../domain/price_provider.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 
 /// 腾讯财经行情实现（issue #14）。
 ///

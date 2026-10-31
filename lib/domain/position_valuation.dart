@@ -1,5 +1,5 @@
-import '../core/money.dart';
-import '../data/db/app_database.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// 行情代码：市场前缀 + 6 位代码，如 `sh600519`、`sz159915`。
 ///

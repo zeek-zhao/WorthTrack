@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
-import '../dao/account_dao.dart';
-import '../db/app_database.dart';
-import '../../domain/repositories/account_repository.dart';
+import 'package:worthtrack/data/dao/account_dao.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/domain/repositories/account_repository.dart';
 
 /// [AccountRepository] 的 Drift 实现。
 class AccountRepositoryImpl implements AccountRepository {

@@ -1,6 +1,6 @@
 import '../../../data/db/app_database.dart';
 import '../../../data/dao/transaction_dao.dart';
-import '../stats.dart';
+import 'package:worthtrack/domain/stats.dart';
 
 /// 交易领域接口。
 abstract class TransactionRepository {

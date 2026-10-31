@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../data/db/app_database.dart';
-import '../../data/dao/transaction_dao.dart';
-import '../../di.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/di.dart';
 
 /// 记账/编辑对话框：支出、收入、转账三类。
 ///

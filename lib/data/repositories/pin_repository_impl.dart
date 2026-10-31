@@ -1,6 +1,6 @@
-import '../../domain/pin_lock.dart';
-import '../../domain/repositories/pin_repository.dart';
-import '../pin/pin_store.dart';
+import 'package:worthtrack/domain/pin_lock.dart';
+import 'package:worthtrack/domain/repositories/pin_repository.dart';
+import 'package:worthtrack/data/pin/pin_store.dart';
 
 /// [PinRepository] 实现：只做「派生哈希 / 比对 / 落盘」，不含 UI 逻辑。
 class PinRepositoryImpl implements PinRepository {

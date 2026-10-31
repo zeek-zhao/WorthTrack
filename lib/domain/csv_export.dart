@@ -12,7 +12,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import '../data/db/app_database.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// UTF-8 BOM 字节。
 const List<int> csvUtf8Bom = [0xEF, 0xBB, 0xBF];

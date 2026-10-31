@@ -4,10 +4,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../data/db/app_database.dart';
-import '../../di.dart';
-import '../../domain/net_worth.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/net_worth.dart';
 
 /// 账户类型的中文展示名。
 const _typeLabels = <AccountType, String>{

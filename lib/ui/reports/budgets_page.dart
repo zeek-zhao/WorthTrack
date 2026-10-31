@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../data/db/app_database.dart';
-import '../../di.dart';
-import '../../domain/stats.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/stats.dart';
 
 /// 预算管理页（issue #10）：按支出分类设置当月预算。
 class BudgetsPage extends ConsumerStatefulWidget {

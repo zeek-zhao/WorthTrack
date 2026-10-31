@@ -1,6 +1,6 @@
-import '../../data/db/app_database.dart';
-import '../position_valuation.dart';
-import '../price_provider.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/domain/position_valuation.dart';
+import 'package:worthtrack/domain/price_provider.dart';
 
 /// 持仓领域接口（issue #13）。
 ///

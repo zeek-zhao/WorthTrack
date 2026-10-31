@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../db/app_database.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 part 'position_dao.g.dart';
 

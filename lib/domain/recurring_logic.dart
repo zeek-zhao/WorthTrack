@@ -1,4 +1,4 @@
-import '../data/db/app_database.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// 周期账单推进结果（纯函数计算，不碰数据库）。
 class RecurringSchedule {

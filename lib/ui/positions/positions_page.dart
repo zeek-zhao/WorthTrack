@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../data/db/app_database.dart';
-import '../../di.dart';
-import '../../domain/position_valuation.dart';
-import '../../domain/repositories/position_repository.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/position_valuation.dart';
+import 'package:worthtrack/domain/repositories/position_repository.dart';
 
 /// A 股习惯：涨红跌绿。
 const _upColor = Color(0xFFEF5350);

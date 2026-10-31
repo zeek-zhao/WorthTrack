@@ -1,7 +1,7 @@
-import '../dao/transaction_dao.dart';
-import '../db/app_database.dart';
-import '../../domain/repositories/transaction_repository.dart';
-import '../../domain/stats.dart';
+import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/domain/repositories/transaction_repository.dart';
+import 'package:worthtrack/domain/stats.dart';
 
 /// [TransactionRepository] 的 Drift 实现。
 class TransactionRepositoryImpl implements TransactionRepository {

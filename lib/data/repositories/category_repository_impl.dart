@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
-import '../../domain/repositories/category_repository.dart';
-import '../dao/category_dao.dart';
-import '../db/app_database.dart';
+import 'package:worthtrack/domain/repositories/category_repository.dart';
+import 'package:worthtrack/data/dao/category_dao.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// [CategoryRepository] 的 Drift 实现。
 class CategoryRepositoryImpl implements CategoryRepository {

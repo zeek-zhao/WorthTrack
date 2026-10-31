@@ -1,4 +1,4 @@
-import '../data/db/app_database.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// 月度收支汇总（不含转账）。
 class MonthTotals {

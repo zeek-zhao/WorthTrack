@@ -2,11 +2,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/money.dart';
-import '../../di.dart';
-import '../../domain/stats.dart';
-import '../recurring/recurring_page.dart';
-import 'budgets_page.dart';
+import 'package:worthtrack/core/money.dart';
+import 'package:worthtrack/di.dart';
+import 'package:worthtrack/domain/stats.dart';
+import 'package:worthtrack/ui/recurring/recurring_page.dart';
+import 'package:worthtrack/ui/reports/budgets_page.dart';
 
 /// 饼图分类配色（循环取用）。
 const _piePalette = [

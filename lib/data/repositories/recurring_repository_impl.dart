@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 
-import '../../domain/recurring_logic.dart';
-import '../../domain/repositories/recurring_repository.dart';
-import '../dao/recurring_dao.dart';
-import '../dao/transaction_dao.dart';
-import '../db/app_database.dart';
+import 'package:worthtrack/domain/recurring_logic.dart';
+import 'package:worthtrack/domain/repositories/recurring_repository.dart';
+import 'package:worthtrack/data/dao/recurring_dao.dart';
+import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// [RecurringRepository] 的 Drift 实现。
 ///

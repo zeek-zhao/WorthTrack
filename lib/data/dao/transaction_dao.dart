@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 
-import 'account_dao.dart';
-import '../db/app_database.dart';
-import '../../domain/csv_export.dart';
-import '../../domain/net_worth.dart';
-import '../../domain/stats.dart';
+import 'package:worthtrack/data/dao/account_dao.dart';
+import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/domain/csv_export.dart';
+import 'package:worthtrack/domain/net_worth.dart';
+import 'package:worthtrack/domain/stats.dart';
 
 part 'transaction_dao.g.dart';
 
