@@ -65,7 +65,7 @@ void main() {
       List<int>? header,
       Set<String>? tables,
       int fileSchemaVersion = 1,
-      int currentSchemaVersion = 1,
+      int currentSchemaVersion = 2,
     }) {
       return validateBackup(
         sizeBytes: sizeBytes,
@@ -96,10 +96,14 @@ void main() {
     });
 
     test('版本更高要提示升级应用', () {
-      expect(check(fileSchemaVersion: 2), BackupProblem.schemaNewer);
+      expect(check(fileSchemaVersion: 3), BackupProblem.schemaNewer);
     });
 
-    test('版本更低要提示不支持', () {
+    test('旧版本备份允许恢复（v1 备份可以在 v2 应用里还原）', () {
+      expect(check(fileSchemaVersion: 1), isNull);
+    });
+
+    test('版本信息读不出来（0）要拒绝：可能已损坏，不该拿它覆盖账本', () {
       expect(check(fileSchemaVersion: 0), BackupProblem.schemaOlder);
     });
 
