@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/net_worth.dart';
-import 'package:worthtrack/ui/accounts/accounts_page.dart';
+import 'package:worthtrack/modules/finance/domain/net_worth.dart';
+import 'package:worthtrack/modules/finance/ui/accounts/accounts_page.dart';
 
 import '../helpers/fake_account_repository.dart';
 import '../helpers/fake_net_worth_repository.dart';

@@ -2,8 +2,8 @@ import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:worthtrack/data/price/tencent_price_provider.dart';
-import 'package:worthtrack/domain/price_provider.dart';
+import 'package:worthtrack/modules/finance/data/price/tencent_price_provider.dart';
+import 'package:worthtrack/modules/finance/domain/price_provider.dart';
 
 /// issue #14 验收：腾讯行情响应解析 fixture 单测（正常 / 停牌 / 代码不存在）。
 void main() {

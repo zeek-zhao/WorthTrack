@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/backup.dart';
+import 'package:worthtrack/modules/finance/domain/backup.dart';
 import 'package:worthtrack/ui/settings/settings_section.dart';
 
 /// 设置页「备份与恢复」分组（issue #18）。

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:worthtrack/ui/accounts/accounts_page.dart';
-import 'package:worthtrack/ui/positions/positions_page.dart';
-import 'package:worthtrack/ui/reports/reports_page.dart';
+import 'package:worthtrack/modules/finance/ui/accounts/accounts_page.dart';
+import 'package:worthtrack/modules/finance/ui/positions/positions_page.dart';
+import 'package:worthtrack/modules/finance/ui/reports/reports_page.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
-import 'package:worthtrack/ui/transactions/transactions_page.dart';
+import 'package:worthtrack/modules/finance/ui/transactions/transactions_page.dart';
 
 /// 应用首页：底部导航（明细 / 报表 / 资产 / 投资 / 设置）。
 class HomePage extends ConsumerStatefulWidget {

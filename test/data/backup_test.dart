@@ -4,10 +4,10 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/data/backup/database_backup_repository.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/backup/database_backup_repository.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/backup.dart';
+import 'package:worthtrack/modules/finance/domain/backup.dart';
 
 import '../helpers/sqlite3_loader.dart';
 

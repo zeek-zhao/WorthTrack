@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/backup.dart';
-import 'package:worthtrack/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/domain/backup.dart';
+import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
 
 import '../helpers/fake_backup_repository.dart';

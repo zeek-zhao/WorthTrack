@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/position_valuation.dart';
-import 'package:worthtrack/domain/price_provider.dart';
-import 'package:worthtrack/domain/repositories/position_repository.dart';
+import 'package:worthtrack/modules/finance/domain/position_valuation.dart';
+import 'package:worthtrack/modules/finance/domain/price_provider.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/position_repository.dart';
 
 import 'fake_transaction_repository.dart' show valueStream;
 

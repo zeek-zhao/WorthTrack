@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 import 'package:worthtrack/ui/settings/settings_section.dart';
 
 /// 设置页「数据导出」分组（issue #19）：把全部流水导成 CSV 给 Excel 用。

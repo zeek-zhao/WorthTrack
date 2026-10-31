@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/data/repositories/export_repository_impl.dart';
-import 'package:worthtrack/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/data/repositories/export_repository_impl.dart';
+import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 
 import '../helpers/sqlite3_loader.dart';
 

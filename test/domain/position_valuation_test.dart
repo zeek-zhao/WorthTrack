@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/position_valuation.dart';
+import 'package:worthtrack/modules/finance/domain/position_valuation.dart';
 
 /// issue #13 验收：市值 / 盈亏 / 百分比计算单测（纯函数，不碰数据库）。
 void main() {

@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart';
 
-import 'package:worthtrack/data/dao/account_dao.dart';
-import 'package:worthtrack/data/dao/budget_dao.dart';
-import 'package:worthtrack/data/dao/category_dao.dart';
-import 'package:worthtrack/data/dao/position_dao.dart';
-import 'package:worthtrack/data/dao/recurring_dao.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/account_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/budget_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/category_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/position_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/recurring_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 
 part 'app_database.g.dart';
 

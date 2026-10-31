@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:worthtrack/domain/backup.dart';
-import 'package:worthtrack/domain/repositories/backup_repository.dart';
+import 'package:worthtrack/modules/finance/domain/backup.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/backup_repository.dart';
 
 /// 备份仓储的假实现：不碰 SQLite，只记录调用并返回预设结果。
 class FakeBackupRepository implements BackupRepository {

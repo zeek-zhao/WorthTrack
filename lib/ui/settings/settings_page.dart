@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/pin_lock.dart';
+import 'package:worthtrack/modules/finance/domain/pin_lock.dart';
 import 'package:worthtrack/ui/settings/backup_section.dart';
 import 'package:worthtrack/ui/settings/csv_export_section.dart';
 import 'package:worthtrack/ui/settings/pin_dialogs.dart';

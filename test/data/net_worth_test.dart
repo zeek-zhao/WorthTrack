@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/data/repositories/net_worth_repository_impl.dart';
-import 'package:worthtrack/data/repositories/position_repository_impl.dart';
-import 'package:worthtrack/domain/price_provider.dart';
+import 'package:worthtrack/modules/finance/data/repositories/net_worth_repository_impl.dart';
+import 'package:worthtrack/modules/finance/data/repositories/position_repository_impl.dart';
+import 'package:worthtrack/modules/finance/domain/price_provider.dart';
 
 import '../helpers/sqlite3_loader.dart';
 
