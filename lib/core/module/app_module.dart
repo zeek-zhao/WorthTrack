@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/db/app_database.dart';
+import 'package:worthtrack/data/db/app_database.dart';
 
 /// 模块标识。
 ///

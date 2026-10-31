@@ -1,4 +1,4 @@
-import 'app_module.dart';
+import 'package:worthtrack/core/module/app_module.dart';
 
 /// 全模块注册表：**显式注册，不用 build_runner 生成**。
 ///

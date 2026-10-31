@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/data/pin/pin_store.dart';
-import 'package:worthtrack/data/repositories/pin_repository_impl.dart';
-import 'package:worthtrack/domain/pin_lock.dart';
+import 'package:worthtrack/modules/finance/data/pin/pin_store.dart';
+import 'package:worthtrack/modules/finance/data/repositories/pin_repository_impl.dart';
+import 'package:worthtrack/modules/finance/domain/pin_lock.dart';
 
 /// issue #17 验收：PIN 凭据落盘、损坏容错、重置不碰数据库。
 void main() {

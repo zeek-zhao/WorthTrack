@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/recurring_logic.dart';
+import 'package:worthtrack/modules/finance/domain/recurring_logic.dart';
 
 /// issue #11 验收：周期推进纯函数测试（连漏 N 期只生成 N 期、月末收敛、endDate 截断）。
 void main() {
