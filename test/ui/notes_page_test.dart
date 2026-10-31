@@ -102,4 +102,100 @@ void main() {
     expect(find.text('新标题'), findsOneWidget);
     expect(find.text('旧标题'), findsNothing);
   });
+
+  testWidgets('点图钉按钮切换置顶，走仓储的 setPinned', (tester) async {
+    await pumpPage(
+      tester,
+      notes: [
+        makeTestNote(1, title: '已置顶的', pinned: true),
+        makeTestNote(2, title: '没置顶的'),
+      ],
+    );
+
+    // 置顶的那条显示「取消置顶」，未置顶的显示「置顶」。
+    await tester.tap(find.byKey(const Key('note-pin-2')));
+    await tester.pumpAndSettle();
+
+    expect(repo.pinnedCalls, [(id: 2, pinned: true)]);
+
+    await tester.tap(find.byKey(const Key('note-pin-1')));
+    await tester.pumpAndSettle();
+    expect(repo.pinnedCalls.last, (id: 1, pinned: false));
+  });
+
+  group('搜索', () {
+    Future<void> search(WidgetTester tester, String keyword) async {
+      await tester.tap(find.byKey(const Key('notes-search-toggle')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('notes-search-field')),
+        keyword,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('按标题与正文过滤，命中的留下', (tester) async {
+      await pumpPage(
+        tester,
+        notes: [
+          makeTestNote(1, title: '买菜清单'),
+          makeTestNote(2, title: '股票复盘', body: '顺便记一下买菜'),
+          makeTestNote(3, title: '装修预算'),
+        ],
+      );
+
+      await search(tester, '买菜');
+
+      expect(find.byKey(const Key('note-tile-1')), findsOneWidget);
+      expect(find.byKey(const Key('note-tile-2')), findsOneWidget);
+      expect(find.byKey(const Key('note-tile-3')), findsNothing);
+    });
+
+    testWidgets('搜不到时给出「没有找到」而不是「一条都没有」', (tester) async {
+      await pumpPage(tester, notes: [makeTestNote(1, title: '买菜清单')]);
+
+      await search(tester, '股票');
+
+      expect(find.text('没有找到「股票」'), findsOneWidget);
+      expect(find.text('想到什么就写一条'), findsNothing);
+    });
+
+    testWidgets('关闭搜索后恢复全部，且清掉关键词', (tester) async {
+      await pumpPage(
+        tester,
+        notes: [
+          makeTestNote(1, title: '买菜清单'),
+          makeTestNote(2, title: '股票复盘'),
+        ],
+      );
+
+      await search(tester, '买菜');
+      expect(find.byKey(const Key('note-tile-2')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('notes-search-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('note-tile-1')), findsOneWidget);
+      expect(find.byKey(const Key('note-tile-2')), findsOneWidget);
+      expect(find.byKey(const Key('notes-search-field')), findsNothing);
+    });
+
+    testWidgets('搜索时置顶仍排在最前（顺序不被过滤打乱）', (tester) async {
+      await pumpPage(
+        tester,
+        notes: [
+          makeTestNote(1, title: '置顶的买菜', pinned: true),
+          makeTestNote(2, title: '后来的买菜'),
+        ],
+      );
+
+      await search(tester, '买菜');
+
+      final tiles = tester
+          .widgetList<ListTile>(find.byType(ListTile))
+          .map((tile) => (tile.key as ValueKey<String>).value)
+          .toList();
+      expect(tiles, ['note-tile-1', 'note-tile-2']);
+    });
+  });
 }
