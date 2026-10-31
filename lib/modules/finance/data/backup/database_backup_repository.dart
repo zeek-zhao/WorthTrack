@@ -40,9 +40,13 @@ class DatabaseBackupRepository implements BackupRepository {
     'price_cache',
     'categories',
     'accounts',
+    'module_state',
   ];
 
   /// 写入顺序：先父表后子表。
+  ///
+  /// `module_state` 无外键，放最后。注意它可能**不在旧备份里**（v1 备份没有这张表），
+  /// 恢复时按「备份里真实存在才替换」处理，见 [restoreFrom]。
   static const List<String> _loadOrder = [
     'accounts',
     'categories',
@@ -51,6 +55,7 @@ class DatabaseBackupRepository implements BackupRepository {
     'recurring_rules',
     'positions',
     'price_cache',
+    'module_state',
   ];
 
   @override
@@ -168,14 +173,27 @@ class DatabaseBackupRepository implements BackupRepository {
     }
 
     try {
+      // 备份里有哪些表：决定「替换哪些表」。旧备份（如 v1）没有 module_state，
+      // 此时不动当前的模块开关——备份里没有的东西，不该被这次恢复抹掉。
+      final sourceTableRows = await _db
+          .customSelect(
+            "SELECT name FROM $alias.sqlite_master WHERE type = 'table'",
+          )
+          .get();
+      final sourceTables = {
+        for (final row in sourceTableRows) row.read<String>('name'),
+      };
+
       await _db.transaction(() async {
         // 表间有外键（categories 还自引用），提交前不逐个校验，
         // 否则「先清父表还是先清子表」这种顺序问题会直接变成失败。
         await _db.customStatement('PRAGMA defer_foreign_keys = ON');
         for (final table in _clearOrder) {
+          if (!sourceTables.contains(table)) continue;
           await _db.customStatement('DELETE FROM "$table"');
         }
         for (final table in _loadOrder) {
+          if (!sourceTables.contains(table)) continue;
           await _db.customStatement(
             'INSERT INTO "$table" SELECT * FROM $alias."$table"',
           );
