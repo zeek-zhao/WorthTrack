@@ -72,6 +72,9 @@ class AccountsPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         key: const Key('add_account_fab'),
+        // IndexedStack 里四个页面同时存活，FAB 必须各自带 tag，
+        // 否则默认 tag 会撞车（「multiple heroes share the same tag」）。
+        heroTag: 'fab-account',
         onPressed: () => _showAddDialog(context),
         tooltip: '新建账户',
         child: const Icon(Icons.add),

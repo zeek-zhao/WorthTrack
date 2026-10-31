@@ -1,12 +1,13 @@
 import 'package:worthtrack/core/module/app_module.dart';
+import 'package:worthtrack/modules/finance/finance_module.dart';
 
 /// 全模块注册表：**显式注册，不用 build_runner 生成**。
 ///
 /// 模块数量是个位数，显式列表更不容易被改错，也让「新增模块 = 加一个目录 + 这里加一行」
 /// 这条成本约束可以被 diff 直接验证（issue #55）。
 ///
-/// 当前为空：`finance` 在 #42 搬迁完成后才注册（搬迁必须是纯重构提交）。
-const List<AppModule> appModules = <AppModule>[];
+/// 这里是**装配点**，允许 import 各模块；core 的其他部分不允许反向依赖模块。
+const List<AppModule> appModules = <AppModule>[FinanceModule()];
 
 /// 按 [AppModule.defaultOrder] 升序返回模块列表。
 ///
