@@ -195,33 +195,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('模块管理'), findsOneWidget);
-    expect(find.text('已启用'), findsOneWidget);
+    // 断言限定在 finance 这张卡片上：模块数量会随 M6–M8 增长，
+    // 「页面上只有一个『已启用』」这种写法每加一个模块就得改一次。
+    final financeStatus = find.descendant(
+      of: find.byKey(const Key('module_tile_finance')),
+      matching: find.text('已启用'),
+    );
+    expect(financeStatus, findsOneWidget);
 
     // 停用：只写开关，不动数据。
     await tester.tap(find.byKey(const Key('module_switch_finance')));
     await tester.pumpAndSettle();
-    expect(find.text('已停用 · 数据仍保留'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('module_tile_finance')),
+        matching: find.text('已停用 · 数据仍保留'),
+      ),
+      findsOneWidget,
+    );
     expect(moduleStateRepo.enabledCalls, [(id: 'finance', enabled: false)]);
 
     // 关键：人还站在这一页上，可以直接把它重新打开。
     await tester.tap(find.byKey(const Key('module_switch_finance')));
     await tester.pumpAndSettle();
-    expect(find.text('已启用'), findsOneWidget);
+    expect(financeStatus, findsOneWidget);
     expect(moduleStateRepo.enabledCalls.last, (id: 'finance', enabled: true));
   });
 
-  testWidgets('停用后 launcher 上不再显示 finance，启用后回来', (tester) async {
+  testWidgets('停用某个模块只影响它自己；全停用后 launcher 给出提示', (tester) async {
     await pumpApp(tester);
     expect(find.byKey(const Key('launcher-module-finance')), findsOneWidget);
+    expect(find.byKey(const Key('launcher-module-notes')), findsOneWidget);
 
     await moduleStateRepo.setEnabled('finance', false);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('launcher-module-finance')), findsNothing);
+    // 停用是「只隐藏自己」，不该牵连其他模块。
+    expect(find.byKey(const Key('launcher-module-notes')), findsOneWidget);
+
+    await moduleStateRepo.setEnabled('notes', false);
+    await tester.pumpAndSettle();
     expect(find.text('所有模块都停用了，去设置里重新启用'), findsOneWidget);
 
     await moduleStateRepo.setEnabled('finance', true);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('launcher-module-finance')), findsOneWidget);
+    expect(find.byKey(const Key('launcher-module-notes')), findsNothing);
   });
 
   testWidgets('已设 PIN 时启动先出锁屏，解锁后才进 launcher', (tester) async {

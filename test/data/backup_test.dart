@@ -160,7 +160,7 @@ void main() {
 
     final inspection = await repo.inspect(path);
     expect(inspection.problem, isNull);
-    expect(inspection.schemaVersion, 2);
+    expect(inspection.schemaVersion, 3);
     expect(inspection.accountCount, 2);
     expect(inspection.transactionCount, 2);
     expect(inspection.positionCount, 1);

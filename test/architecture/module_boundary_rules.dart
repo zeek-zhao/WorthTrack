@@ -44,6 +44,7 @@ const List<TableRef> knownTables = [
   TableRef('recurring_rules', 'recurringRules', 'RecurringRules'),
   TableRef('positions', 'positions', 'Positions'),
   TableRef('price_cache', 'priceCache', 'PriceCache'),
+  TableRef('notes', 'notes', 'Notes'),
   TableRef('module_state', 'moduleStates', 'ModuleStates'),
 ];
 
