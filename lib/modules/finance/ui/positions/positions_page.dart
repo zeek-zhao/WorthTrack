@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:worthtrack/core/module/module_route.dart';
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/modules/finance/domain/position_valuation.dart';
@@ -255,6 +257,27 @@ class _PositionTile extends ConsumerWidget {
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 _openEditDialog(context, valuation);
+              },
+            ),
+            ListTile(
+              key: const Key('position_notes_btn'),
+              leading: const Icon(Icons.sticky_note_2_outlined),
+              title: const Text('相关笔记'),
+              subtitle: const Text('看看这只标的记过什么'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                // 跨模块只跳路由，不 import notes（架构测试守着这条边界）。
+                // 查询参数就是契约，见 NotesModule 的文档注释。
+                context.go(
+                  moduleRoute(
+                    'notes',
+                    query: {
+                      'refType': 'position',
+                      'refId': valuation.symbol,
+                      'refLabel': valuation.position.name,
+                    },
+                  ),
+                );
               },
             ),
             ListTile(

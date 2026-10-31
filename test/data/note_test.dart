@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/modules/notes/data/repositories/note_repository_impl.dart';
+import 'package:worthtrack/modules/notes/domain/note_ref.dart';
 import 'package:worthtrack/modules/notes/domain/repositories/note_repository.dart';
 
 import '../helpers/sqlite3_loader.dart';
@@ -157,6 +158,79 @@ void main() {
 
     test('删不存在的 id 不抛异常（重复点击不该炸）', () async {
       await repo.deleteNote(424242);
+    });
+  });
+
+  group('弱引用（#49）', () {
+    test('按 refType + refId 取笔记，别人的不会混进来', () async {
+      await addNote('茅台的思考', refType: 'position', refId: 'sh600519');
+      await addNote('另一个标的', refType: 'position', refId: 'sz000001');
+      await addNote('工资卡的备注', refType: 'account', refId: '1');
+      await addNote('什么都没挂');
+
+      final forMoutai = await repo
+          .watchNotesForRef(refType: 'position', refId: 'sh600519')
+          .first;
+      expect(forMoutai.map((n) => n.title), ['茅台的思考']);
+
+      final forAccount = await repo
+          .watchNotesForRef(refType: 'account', refId: '1')
+          .first;
+      expect(forAccount.map((n) => n.title), ['工资卡的备注']);
+    });
+
+    test('同一个 id 不同类型的不会互相串（position:1 vs account:1）', () async {
+      await addNote('标的 1', refType: 'position', refId: '1');
+      await addNote('账户 1', refType: 'account', refId: '1');
+
+      final byPosition = await repo
+          .watchNotesForRef(refType: 'position', refId: '1')
+          .first;
+      expect(byPosition.map((n) => n.title), ['标的 1']);
+    });
+
+    test('相关笔记沿用同一套排序（置顶 → 最近修改）', () async {
+      final first = await addNote(
+        '先记的',
+        refType: 'position',
+        refId: 'sh600519',
+      );
+      await addNote('后记的', refType: 'position', refId: 'sh600519');
+
+      await repo.setPinned(first, true);
+      final list = await repo
+          .watchNotesForRef(refType: 'position', refId: 'sh600519')
+          .first;
+      expect(list.map((n) => n.title), ['先记的', '后记的']);
+    });
+
+    test('setRef 改绑会推 updatedAt（关联属于内容）', () async {
+      final id = await addNote('一条笔记');
+      final before = (await repo.getById(id))!.updatedAt;
+
+      final at = now.add(const Duration(hours: 1));
+      now = at;
+      await repo.setRef(id, const NoteRef(type: 'account', id: '7'));
+
+      final note = await repo.getById(id);
+      expect(note!.refType, 'account');
+      expect(note.refId, '7');
+      expect(note.updatedAt, at);
+      expect(note.updatedAt, isNot(before));
+    });
+
+    test('setRef 传 null 解除关联，两列一起清空', () async {
+      final id = await addNote(
+        '挂了标的的笔记',
+        refType: 'position',
+        refId: 'sh600519',
+      );
+
+      await repo.setRef(id, null);
+
+      final note = await repo.getById(id);
+      expect(note!.refType, isNull);
+      expect(note.refId, isNull);
     });
   });
 }

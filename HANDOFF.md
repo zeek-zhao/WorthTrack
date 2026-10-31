@@ -8,8 +8,9 @@
 ## 0. 一句话现状
 
 `main = 6f5f385`（M5 收口 PR #65 + M6 前两条 PR #66/#67），M5 六条 **6/6 全部完成**；
-**M6 记事本进度 2/4**：#47（表 + DAO + 仓储 + 模块）与 #48（列表 / 编辑 / 置顶 / 搜索）已完成，测试基线 **489**。
-下一步 **#49 弱引用**（从标的或账户跳到相关笔记；`refType`/`refId` 字段已在 #47 就位）。
+**M6 记事本进度 3/4**：#47（表 + DAO + 仓储 + 模块）、#48（列表 / 编辑 / 置顶 / 搜索）、
+#49（弱引用：从标的或账户跳到相关笔记）已完成，测试基线 **514**。
+下一步 **#50 模块停用/清理对 notes 数据的正确性**。
 ⚠️ v2.0 代码尚未真机手测，M8 发版前按手测清单走一遍（v1.0.0 已手测通过）。
 
 ---
@@ -20,7 +21,7 @@
 cd /d/zeek/WorkBuddy/WorthTrack
 git log --oneline -3                                  # 应为 #44 的提交起
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 489 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 514 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -58,6 +59,7 @@ lib/
     module/module_providers.dart#   启用集合 / 排序 / 模块上下文 / 痕迹存储的 provider（#44/#45）
     last_module_store.dart      #   「上次停留模块」落 last_module.json（#44，不入库、不随备份）
     router.dart                 #   ⚠️ createAppRouter + resolveInitialLocation + resolveModuleRedirect（#44/#45）
+    module/module_route.dart    #   跨模块跳转只走这里：moduleRoute(id, query:)（#49）
     backup/                     #   整库备份恢复（#45 从 finance 提到 core）
     pin/                        #   PIN 锁凭据与校验（#45 从 finance 提到 core）
     files/file_save_picker.dart #   另存为（Android SAF / 桌面路径）
@@ -76,7 +78,8 @@ lib/
     finance_providers.dart      #   finance 自己的 9 个仓储 provider（#45）
     ui/finance_shell.dart       #   模块内部四 tab + 左下角回 launcher 的出口（#44）
   modules/notes/                # ← v2.0 第一个**新增**模块（#47）
-    domain/note_text.dart       #   纯逻辑：noteDisplayTitle（空标题退化正文首行）/ formatNoteTime
+    domain/note_text.dart       #   纯逻辑：noteDisplayTitle（空标题退化正文首行）/ formatNoteTime / noteMatchesKeyword
+    domain/note_ref.dart        #   弱引用目标 NoteRef：fromQuery / toQuery / display（#49）
     domain/repositories/note_repository.dart
     data/dao/note_dao.dart      #   watchNotes 的排序在这里（置顶 → updatedAt → id 兜底）
     data/repositories/note_repository_impl.dart  # updatedAt 由这里维护；now 可注入便于测
@@ -88,7 +91,7 @@ lib/
     settings/settings_page.dart # ⚠️ core 系统设置 + 各模块 settingsTiles（#45）
     settings/module_management_page.dart  # 启用/停用/清理/排序（#45）
     lock/                       #   PIN 锁屏与门卫
-test/                           # 489 个单测 + Widget 测试
+test/                           # 514 个单测 + Widget 测试
 test/architecture/              #   ⚠️ 模块边界扫描：越界访问他人表 / import di.dart / core 反向依赖（#46）
 test/fixtures/schema_v{1,2}.sql #   迁移测试用的真实 DDL 夹具（新增 migration 时补一份，不要改旧的）
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
@@ -126,6 +129,9 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
     `core/` 也不许反向 import 模块——唯一例外是 `module_registry.dart` 的注册表与 `di.dart`。
     **这条不是靠自觉**：#46 的 `test/architecture/` 会扫源码，越界直接让 PR 变红。
 12. **新增表要同步三处**：`AppDatabase` 的表定义、某模块的 `ownedTables`、`test/architecture/module_boundary_rules.dart` 的 `knownTables`。
+13. **跨模块跳转只走 `moduleRoute(id, query: {...})`**，绝不 import 对方模块（#49）：
+    路径与查询参数就是契约，写错只会在运行时安静地跳到 404。
+    已定契约：`/notes?refType=position|account&refId=<code|id>&refLabel=<展示名>`。
     漏了第三处，越界扫描会静默漏掉那张表（有专门的用例守着）。
 
 ---
@@ -141,7 +147,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**489 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面、+11 搜索与置顶）
+- 测试基线：**514 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面、+11 搜索与置顶、+25 弱引用与跨模块跳转）
 
 ---
 
@@ -228,7 +234,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 |---|---|---|
 | 1 | #47 `notes` 表 + DAO + 仓储 | ✅ 已完成：schema v3（只加表）、`ownedTables`/`knownTables` 已登记、迁移测试覆盖 v1→v3 与 v2→v3 |
 | 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | ✅ 已完成：列表与编辑在 #47 落地；#48 补置顶按钮、搜索（Dart 端过滤，不用 SQL `LIKE`）、两种空态区分 |
-| 3 | #49 弱引用：从标的或账户跳到相关笔记 | 弱引用 = 存 id 不建外键，删了也不报错（字段已在 #47 就位） |
+| 3 | #49 弱引用：从标的或账户跳到相关笔记 | ✅ 已完成：`/notes?refType=&refId=&refLabel=` 路由契约 + 持仓/资产两个入口；编辑器里可解除关联 |
 | 4 | #50 模块停用/清理对 notes 数据的正确性 | 「清理数据」只删 notes 自己的表，finance 一条不动 |
 
 之后：M7 关注与提醒 → M8 游戏与发版。

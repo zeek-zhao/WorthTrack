@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/modules/notes/data/dao/note_dao.dart';
+import 'package:worthtrack/modules/notes/domain/note_ref.dart';
 import 'package:worthtrack/modules/notes/domain/repositories/note_repository.dart';
 
 /// [NoteRepository] 的 Drift 实现。
@@ -15,6 +16,14 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Stream<List<Note>> watchNotes() => _dao.watchNotes();
+
+  @override
+  Stream<List<Note>> watchNotesForRef({
+    required String refType,
+    required String refId,
+  }) {
+    return _dao.watchNotesForRef(refType: refType, refId: refId);
+  }
 
   @override
   Future<Note?> getById(int id) => _dao.getById(id);
@@ -57,6 +66,11 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<void> setPinned(int id, bool pinned) => _dao.setPinned(id, pinned);
+
+  @override
+  Future<void> setRef(int id, NoteRef? ref) {
+    return _dao.setRef(id, ref?.type, ref?.id, _now());
+  }
 
   @override
   Future<void> deleteNote(int id) => _dao.deleteNote(id);

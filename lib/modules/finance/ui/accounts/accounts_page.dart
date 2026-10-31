@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:worthtrack/core/module/module_route.dart';
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/modules/finance/domain/net_worth.dart';
@@ -57,9 +59,33 @@ class AccountsPage extends ConsumerWidget {
                         subtitle: account.note == null
                             ? null
                             : Text(account.note!),
-                        trailing: Text(
-                          Money.toYuanSymbol(account.balanceMinor),
-                          style: Theme.of(context).textTheme.titleMedium,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              Money.toYuanSymbol(account.balanceMinor),
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            IconButton(
+                              key: Key('account_notes_${account.id}'),
+                              tooltip: '相关笔记',
+                              icon: const Icon(
+                                Icons.sticky_note_2_outlined,
+                                size: 20,
+                              ),
+                              onPressed: () => context.go(
+                                // 跨模块只跳路由，不 import notes。
+                                moduleRoute(
+                                  'notes',
+                                  query: {
+                                    'refType': 'account',
+                                    'refId': '${account.id}',
+                                    'refLabel': account.name,
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }, childCount: accounts.length),

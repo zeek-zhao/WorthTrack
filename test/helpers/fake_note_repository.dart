@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:worthtrack/data/db/app_database.dart';
+import 'package:worthtrack/modules/notes/domain/note_ref.dart';
 import 'package:worthtrack/modules/notes/domain/repositories/note_repository.dart';
 
 import 'fake_transaction_repository.dart' show replayStream;
@@ -12,13 +13,17 @@ class FakeNoteRepository implements NoteRepository {
   int _nextId = 1;
 
   /// 记录「新建时传了什么」，供断言 UI 是否真的把内容交了出去。
-  final List<({String title, String body})> created = [];
+  final List<({String title, String body, String? refType, String? refId})>
+  created = [];
 
   /// 记录被删的 id。
   final List<int> deleted = [];
 
   /// 记录置顶调用。
   final List<({int id, bool pinned})> pinnedCalls = [];
+
+  /// 记录改/解绑弱引用。
+  final List<({int id, NoteRef? ref})> refCalls = [];
 
   void emit(List<Note> notes) {
     _notes = notes;
@@ -27,6 +32,19 @@ class FakeNoteRepository implements NoteRepository {
 
   @override
   Stream<List<Note>> watchNotes() => replayStream(_notes, _controller);
+
+  @override
+  Stream<List<Note>> watchNotesForRef({
+    required String refType,
+    required String refId,
+  }) {
+    return watchNotes().map(
+      (notes) => [
+        for (final note in notes)
+          if (note.refType == refType && note.refId == refId) note,
+      ],
+    );
+  }
 
   @override
   Future<Note?> getById(int id) async {
@@ -43,9 +61,18 @@ class FakeNoteRepository implements NoteRepository {
     String? refType,
     String? refId,
   }) async {
-    created.add((title: title, body: body));
+    created.add((title: title, body: body, refType: refType, refId: refId));
     final id = _nextId++;
-    emit([makeTestNote(id, title: title, body: body), ..._notes]);
+    emit([
+      makeTestNote(
+        id,
+        title: title,
+        body: body,
+        refType: refType,
+        refId: refId,
+      ),
+      ..._notes,
+    ]);
     return id;
   }
 
@@ -67,6 +94,11 @@ class FakeNoteRepository implements NoteRepository {
   }
 
   @override
+  Future<void> setRef(int id, NoteRef? ref) async {
+    refCalls.add((id: id, ref: ref));
+  }
+
+  @override
   Future<void> deleteNote(int id) async {
     deleted.add(id);
     emit([
@@ -84,14 +116,16 @@ Note makeTestNote(
   String title = '',
   String body = '',
   bool pinned = false,
+  String? refType,
+  String? refId,
   DateTime? updatedAt,
 }) => Note(
   id: id,
   title: title,
   body: body,
   pinned: pinned,
-  refType: null,
-  refId: null,
+  refType: refType,
+  refId: refId,
   createdAt: DateTime(2026, 10, 31, 9),
   updatedAt: updatedAt ?? DateTime(2026, 10, 31, 9),
 );
