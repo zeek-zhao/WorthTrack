@@ -60,4 +60,36 @@ void main() {
       );
     });
   });
+  group('noteMatchesKeyword', () {
+    test('空关键词（含纯空白）一律命中', () {
+      expect(noteMatchesKeyword('标题', '正文', ''), isTrue);
+      expect(noteMatchesKeyword('标题', '正文', '   '), isTrue);
+    });
+
+    test('标题与正文都能命中', () {
+      expect(noteMatchesKeyword('买菜的清单', '正文', '买菜'), isTrue);
+      expect(noteMatchesKeyword('标题', '顺便记一下买菜', '买菜'), isTrue);
+    });
+
+    test('大小写不敏感（Dart 端处理，不依赖 SQLite 的 ASCII 限制）', () {
+      expect(noteMatchesKeyword('ETF 复盘', '', 'etf'), isTrue);
+      expect(noteMatchesKeyword('标题', 'Net Worth 口径', 'net worth'), isTrue);
+    });
+
+    test('关键词首尾空白被忽略', () {
+      expect(noteMatchesKeyword('买菜', '', '  买菜  '), isTrue);
+    });
+
+    test('% 与 _ 是普通字符，不是通配符', () {
+      // 这正是放弃 SQL LIKE 的原因：LIKE 里搜 "50%" 会匹配任意内容。
+      expect(noteMatchesKeyword('仓位 50% 上限', '', '50%'), isTrue);
+      expect(noteMatchesKeyword('仓位 5000 上限', '', '50%'), isFalse);
+      expect(noteMatchesKeyword('a_b', '', 'a_b'), isTrue);
+      expect(noteMatchesKeyword('axb', '', 'a_b'), isFalse);
+    });
+
+    test('都不命中时返回 false', () {
+      expect(noteMatchesKeyword('买菜', '清单', '股票'), isFalse);
+    });
+  });
 }

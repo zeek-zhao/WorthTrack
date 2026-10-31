@@ -33,3 +33,17 @@ String formatNoteTime(DateTime at, {DateTime? now}) {
 }
 
 String _two(int value) => value.toString().padLeft(2, '0');
+
+/// 关键词是否命中这条笔记（标题 + 正文，大小写不敏感）。
+///
+/// **刻意不用 SQL 的 `LIKE`**，两个原因：
+/// 1. `LIKE` 里的 `%` 和 `_` 是通配符，用户搜「50%」会搜出一堆无关笔记；
+/// 2. SQLite 的 `LIKE` 只对 ASCII 大小写不敏感，行为与用户预期不一致。
+///
+/// 笔记是个人量级（几百条），在 Dart 端过滤完全够用，且逻辑可单测。
+bool noteMatchesKeyword(String title, String body, String keyword) {
+  final needle = keyword.trim().toLowerCase();
+  if (needle.isEmpty) return true;
+  return title.toLowerCase().contains(needle) ||
+      body.toLowerCase().contains(needle);
+}

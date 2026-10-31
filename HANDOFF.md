@@ -8,8 +8,8 @@
 ## 0. 一句话现状
 
 `main = 7663ae0`（M5 收口 PR #65 + M6 第一条 PR #66），M5 六条 **6/6 全部完成**；
-**M6 记事本进度 1/4**：#47（`notes` 表 + DAO + 仓储 + 模块注册）已完成，测试基线 **478**。
-下一步 **#48 记事本页**（置顶 / 搜索 / 排序打磨；列表与编辑已在 #47 落地）。
+**M6 记事本进度 2/4**：#47（表 + DAO + 仓储 + 模块）与 #48（列表 / 编辑 / 置顶 / 搜索）已完成，测试基线 **489**。
+下一步 **#49 弱引用**（从标的或账户跳到相关笔记；`refType`/`refId` 字段已在 #47 就位）。
 ⚠️ v2.0 代码尚未真机手测，M8 发版前按手测清单走一遍（v1.0.0 已手测通过）。
 
 ---
@@ -20,7 +20,7 @@
 cd /d/zeek/WorkBuddy/WorthTrack
 git log --oneline -3                                  # 应为 #44 的提交起
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 478 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 489 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -88,7 +88,7 @@ lib/
     settings/settings_page.dart # ⚠️ core 系统设置 + 各模块 settingsTiles（#45）
     settings/module_management_page.dart  # 启用/停用/清理/排序（#45）
     lock/                       #   PIN 锁屏与门卫
-test/                           # 478 个单测 + Widget 测试
+test/                           # 489 个单测 + Widget 测试
 test/architecture/              #   ⚠️ 模块边界扫描：越界访问他人表 / import di.dart / core 反向依赖（#46）
 test/fixtures/schema_v{1,2}.sql #   迁移测试用的真实 DDL 夹具（新增 migration 时补一份，不要改旧的）
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
@@ -141,7 +141,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**478 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面）
+- 测试基线：**489 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面、+11 搜索与置顶）
 
 ---
 
@@ -222,14 +222,13 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 | 5 | #45 模块管理页 + 设置页拆分 | ✅ 已完成（PR #63）：停用/清理独立入口；停用全部模块后仍能进模块管理重新启用 |
 | 6 | #46 架构测试 | ✅ 已完成（PR #64）：扫源码守三条边界，`ownedTables` ↔ schema 双向一致，规则本身有自检用例 |
 
-### M6 记事本（下一个）
+### M6 记事本（进行中）
 
 | 序 | 任务 | 验收标准 |
 |---|---|---|
-| 1 | #47 `notes` 表 + DAO + 仓储 | 新表登记进 `ownedTables` 与 `knownTables`（漏了架构测试会红）；模块可独立停用 |
 | 1 | #47 `notes` 表 + DAO + 仓储 | ✅ 已完成：schema v3（只加表）、`ownedTables`/`knownTables` 已登记、迁移测试覆盖 v1→v3 与 v2→v3 |
-| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | 列表与编辑已在 #47 落地（模块注册必须有路由，否则 launcher 会点到 404）；#48 补置顶交互 / 搜索 / 排序打磨 |
-| 3 | #49 弱引用：从标的或账户跳到相关笔记 | 弱引用 = 存 id 不建外键，删了也不报错 |
+| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | ✅ 已完成：列表与编辑在 #47 落地；#48 补置顶按钮、搜索（Dart 端过滤，不用 SQL `LIKE`）、两种空态区分 |
+| 3 | #49 弱引用：从标的或账户跳到相关笔记 | 弱引用 = 存 id 不建外键，删了也不报错（字段已在 #47 就位） |
 | 4 | #50 模块停用/清理对 notes 数据的正确性 | 「清理数据」只删 notes 自己的表，finance 一条不动 |
 
 之后：M7 关注与提醒 → M8 游戏与发版。
