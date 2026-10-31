@@ -1,16 +1,16 @@
 # WorthTrack 交接文档（给接手的 AI）
 
-> 生成时间：2026-10-31 ｜ 交接点：**v1.0.0 已发布，v2.0 的 M5（模块化改造）已合入 main，下一步 M6 记事本**
+> 生成时间：2026-10-31 ｜ 交接点：**v1.0.0 已发布，v2.0 的 M5（模块化）与 M6（记事本）已全部合入 main，下一步 M7 关注与提醒**
 > 读这一份即可接手，不需要回溯历史对话。更细的历史坑见 `docs/troubleshooting.md`，改动流水见 `docs/ai-changelog.md`。
 
 ---
 
 ## 0. 一句话现状
 
-`main = fba5a31`（M5 收口 PR #65 + M6 前三条 PR #66/#67/#68），M5 六条 **6/6 全部完成**；
-**M6 记事本进度 3/4**：#47（表 + DAO + 仓储 + 模块）、#48（列表 / 编辑 / 置顶 / 搜索）、
-#49（弱引用：从标的或账户跳到相关笔记）已完成，测试基线 **514**。
-下一步 **#50 模块停用/清理对 notes 数据的正确性**。
+`main = ac5bb06`（M5 收口 PR #65 + M6 四条 PR #66–#69），M5 六条 **6/6**、M6 四条 **4/4 全部完成**；
+M6 记事本：#47（表 + DAO + 仓储 + 模块）、#48（列表 / 编辑 / 置顶 / 搜索）、
+#49（弱引用：从标的或账户跳到相关笔记）、#50（停用/清理对 notes 数据的正确性）。
+测试基线 **527**。下一步 **M7 #51 关注与提醒**。
 ⚠️ v2.0 代码尚未真机手测，M8 发版前按手测清单走一遍（v1.0.0 已手测通过）。
 
 ---
@@ -19,9 +19,9 @@
 
 ```bash
 cd /d/zeek/WorkBuddy/WorthTrack
-git log --oneline -3                                  # 应为 #44 的提交起
+git log --oneline -3                                  # 应为 ac5bb06（M6 收口合并）
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 514 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 527 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -91,8 +91,9 @@ lib/
     settings/settings_page.dart # ⚠️ core 系统设置 + 各模块 settingsTiles（#45）
     settings/module_management_page.dart  # 启用/停用/清理/排序（#45）
     lock/                       #   PIN 锁屏与门卫
-test/                           # 514 个单测 + Widget 测试
+test/                           # 527 个单测 + Widget 测试
 test/architecture/              #   ⚠️ 模块边界扫描：越界访问他人表 / import di.dart / core 反向依赖（#46）
+test/modules/notes_lifecycle_test.dart  # ⚠️ 停用/清理对 notes 数据的正确性（#50，M6 的数据安全地基）
 test/fixtures/schema_v{1,2}.sql #   迁移测试用的真实 DDL 夹具（新增 migration 时补一份，不要改旧的）
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
 docs/{ai-changelog,troubleshooting,issues-backlog,money-paths-coverage}.md
@@ -104,16 +105,17 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 不要写相对 `../`——历史上 `lib/domain/repositories/` 里有 4 处写成 `../../../data/db`，
 实际指向仓库根，潜伏了很久才在搬迁时暴露。
 
-**当前 8 张表**：accounts / categories / transactions / budgets / recurring_rules / positions / price_cache / **module_state**（core 拥有）。
+**当前 9 张表**：accounts / categories / transactions / budgets / recurring_rules / positions / price_cache / **module_state**（core 拥有）/ **notes**（notes 模块拥有）。
 
 ---
 
 ## 4. 铁律（违反会直接翻车，别自行放宽）
 
 1. **AI 读需求只从 `wiki/` 读**（GitHub wiki 是权威，Obsidian vault 只是起草区）。
-2. **schemaVersion 现为 2**（v1→v2 已在 #43 完成，加 `module_state` 表）。
+2. **schemaVersion 现为 3**（v1→v2 加 `module_state`（#43）；v2→v3 加 `notes`（#47））。
    之后任何升级**只在 `onUpgrade` 按 `if (from < N)` 追加分支**，禁止改动旧表结构历史，
-   且必须配迁移测试（做法见 `test/data/migration_v1_to_v2_test.dart`：用真实 v1 库夹具升级后逐表比对）。
+   且必须配迁移测试（做法见 `test/data/migration_test.dart`：用真实 v1/v2 库夹具升级后逐表比对，
+   两组都要覆盖——连跳两级 与 只跑最后一级，后者最容易漏）。
 3. **金额只用整数分**，任何浮点金额都是 bug。
 4. **碰钱路径（写交易/改余额）必须在同一事务内**完成。
 5. **CI 三关硬门槛**：`dart format --set-exit-if-changed` + `flutter analyze --fatal-warnings` + `flutter test` 全绿。
@@ -147,7 +149,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**514 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面、+11 搜索与置顶、+25 弱引用与跨模块跳转）
+- 测试基线：**527 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面、+11 搜索与置顶、+25 弱引用与跨模块跳转、+13 停用/清理数据正确性）
 
 ---
 
@@ -195,7 +197,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 | launcher 排序是否允许拖拽 | 允许，`module_state` 已有 order 字段；但先做固定顺序，拖拽放 M8 |
 | 自选列表与持仓如何去重 | 同一 `code` 合并为一条，来源标记 `held` / `manual`，默认显示持仓、可单独隐藏 |
 | 提醒去重口径 | 按「当日一次」实现（简单、可测）；「再次穿越才提醒」留到 v2.x |
-| 记事本 Markdown 怎么渲染 | 自研轻量（粗体/列表/标题三件套），不引 `flutter_markdown`，避免新依赖与新测试面 |
+| ~~记事本 Markdown 怎么渲染~~ | **已落地（#47/#48）**：M6 直接按**纯文本**实现，不做任何 Markdown 渲染，零新依赖。若日后要渲染，仍建议自研轻量（粗体/列表/标题三件套），不引 `flutter_markdown` |
 | 桌面宽屏 launcher 布局 | 手机九宫格，宽屏改两列列表；**需求里「桌面同款布局」这条在 launcher 上不成立，需要确认放宽** |
 | **旧版本备份能不能恢复**（v2 新增，**阻断 v2.0 发布**） | 现状 `validateBackup` 拒绝任何旧版本备份 → v2 上线后用户升级前的 v1 备份**无法恢复**。放开的技术前提已具备（只替换备份中存在的表 + 单事务回滚），但这是产品取舍，需拍板 |
 
@@ -228,16 +230,16 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 | 5 | #45 模块管理页 + 设置页拆分 | ✅ 已完成（PR #63）：停用/清理独立入口；停用全部模块后仍能进模块管理重新启用 |
 | 6 | #46 架构测试 | ✅ 已完成（PR #64）：扫源码守三条边界，`ownedTables` ↔ schema 双向一致，规则本身有自检用例 |
 
-### M6 记事本（进行中）
+### M6 记事本（✅ 已全部合入 main，PR #66–#69）
 
 | 序 | 任务 | 验收标准 |
 |---|---|---|
-| 1 | #47 `notes` 表 + DAO + 仓储 | ✅ 已完成：schema v3（只加表）、`ownedTables`/`knownTables` 已登记、迁移测试覆盖 v1→v3 与 v2→v3 |
-| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | ✅ 已完成：列表与编辑在 #47 落地；#48 补置顶按钮、搜索（Dart 端过滤，不用 SQL `LIKE`）、两种空态区分 |
-| 3 | #49 弱引用：从标的或账户跳到相关笔记 | ✅ 已完成：`/notes?refType=&refId=&refLabel=` 路由契约 + 持仓/资产两个入口；编辑器里可解除关联 |
-| 4 | #50 模块停用/清理对 notes 数据的正确性 | 「清理数据」只删 notes 自己的表，finance 一条不动 |
+| 1 | #47 `notes` 表 + DAO + 仓储 | ✅ 已完成（PR #66）：schema v3（只加表）、`ownedTables`/`knownTables` 已登记、迁移测试覆盖 v1→v3 与 v2→v3 |
+| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | ✅ 已完成（PR #67）：列表与编辑在 #47 落地；#48 补置顶按钮、搜索（Dart 端过滤，不用 SQL `LIKE`）、两种空态区分 |
+| 3 | #49 弱引用：从标的或账户跳到相关笔记 | ✅ 已完成（PR #68）：`/notes?refType=&refId=&refLabel=` 路由契约 + 持仓/资产两个入口；编辑器里可解除关联 |
+| 4 | #50 模块停用/清理对 notes 数据的正确性 | ✅ 已完成（PR #69）：清理只删 `ownedTables` 里的表、不重置模块开关；删标的不断笔记；停用后 `/notes` 被门禁踢回 |
 
-之后：M7 关注与提醒 → M8 游戏与发版。
+之后：**M7 关注与提醒（#51/#52/#53）→ M8 游戏与发版**。
 
 ---
 
@@ -278,7 +280,7 @@ bash scripts/set_release_body.sh vX.Y.Z
 
 ## 11. 第一天 checklist
 
-- [ ] 跑完 §1 四条验证命令，确认 444 个测试全绿
+- [ ] 跑完 §1 三条验证命令，确认 527 个测试全绿
 - [ ] 读 `wiki/需求规格-v2.0.md` + `wiki/模块化架构决策.md`
-- [ ] 读 §8 的 M5 表格，理解「core + 模块」的分层与三条边界
-- [ ] 从 M6 第一条 #47 开始
+- [ ] 读 §8 的 M5/M6 表格，理解「core + 模块」的分层与三条边界
+- [ ] 从 M7 第一条 #51（关注列表）开始
