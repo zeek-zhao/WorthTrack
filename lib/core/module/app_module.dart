@@ -100,6 +100,13 @@ abstract class AppModule {
   /// 向系统设置页贡献条目。系统设置本身（PIN / 备份恢复 / 模块管理）归 core，不属任何模块。
   List<Widget> settingsTiles(ModuleContext context) => const <Widget>[];
 
+  /// 向 launcher 贡献**常驻快捷动作**（如「记一笔」「记一条」）。
+  ///
+  /// 由模块自己提供而不是 core 硬编码，避免 core 反向依赖模块：
+  /// launcher 只知道「有几个快捷按钮」，不知道按钮背后是哪个模块。
+  /// 停用模块时它的快捷动作一并消失。
+  List<Widget> quickActions(BuildContext context) => const <Widget>[];
+
   /// 启用钩子。可建表、可补数据，但**不得删除用户数据**。
   Future<void> onEnable(ModuleContext context) async {}
 

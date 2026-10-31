@@ -194,6 +194,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         key: const Key('add_txn_fab'),
+        heroTag: 'fab-transaction',
         onPressed: () => _showEditDialog(context, null),
         tooltip: '记一笔',
         child: const Icon(Icons.add),

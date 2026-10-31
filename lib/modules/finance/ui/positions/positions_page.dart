@@ -79,6 +79,7 @@ class _PositionsPageState extends ConsumerState<PositionsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         key: const Key('add_position_fab'),
+        heroTag: 'fab-position',
         tooltip: '新建持仓',
         onPressed: () => _openEditDialog(context),
         child: const Icon(Icons.add),

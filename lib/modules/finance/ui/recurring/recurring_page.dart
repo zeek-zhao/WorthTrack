@@ -36,6 +36,7 @@ class RecurringPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         key: const Key('add_rule_fab'),
+        heroTag: 'fab-recurring',
         tooltip: '新建周期账单',
         onPressed: () => _showEditDialog(context, ref, null),
         child: const Icon(Icons.add),
