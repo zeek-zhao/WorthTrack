@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../di.dart';
-import 'lock_screen.dart';
+import 'package:worthtrack/core/providers.dart';
+import 'package:worthtrack/ui/lock/lock_screen.dart';
 
 /// 启动锁门卫（issue #17）：已设 PIN 时先出锁屏，解锁后才挂载主界面。
 ///
@@ -84,7 +84,15 @@ class _LockGateState extends ConsumerState<LockGate>
       );
     }
     if (_locked) {
-      return LockScreen(onUnlocked: () => setState(() => _locked = false));
+      // LockGate 挂在 MaterialApp.builder 上，位置在 Router 的 Navigator **之上**，
+      // 所以锁屏自己需要一个 Navigator：输入框的选区手柄要 Overlay 祖先。
+      return Navigator(
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) =>
+              LockScreen(onUnlocked: () => setState(() => _locked = false)),
+        ),
+      );
     }
     return widget.child;
   }

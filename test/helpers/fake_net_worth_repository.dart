@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:worthtrack/domain/net_worth.dart';
-import 'package:worthtrack/domain/repositories/net_worth_repository.dart';
+import 'package:worthtrack/modules/finance/domain/net_worth.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/net_worth_repository.dart';
 
 import 'fake_transaction_repository.dart' show replayStream;
 

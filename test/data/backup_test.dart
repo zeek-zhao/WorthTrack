@@ -4,10 +4,11 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/data/backup/database_backup_repository.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
+import 'package:worthtrack/core/backup/database_backup_repository.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/backup.dart';
+import 'package:worthtrack/core/backup/backup.dart';
 
 import '../helpers/sqlite3_loader.dart';
 
@@ -159,7 +160,7 @@ void main() {
 
     final inspection = await repo.inspect(path);
     expect(inspection.problem, isNull);
-    expect(inspection.schemaVersion, 1);
+    expect(inspection.schemaVersion, 2);
     expect(inspection.accountCount, 2);
     expect(inspection.transactionCount, 2);
     expect(inspection.positionCount, 1);
@@ -321,5 +322,86 @@ void main() {
     await repo.restoreFrom(path);
 
     expect(await snapshot(db), before);
+  });
+
+  group('module_state 随备份走（#43）', () {
+    test('v2 备份往返后模块开关与排序一致', () async {
+      await seed();
+      await db
+          .into(db.moduleStates)
+          .insert(
+            ModuleStatesCompanion.insert(
+              moduleId: 'finance',
+              enabled: const Value(false),
+              sortOrder: const Value(7),
+              firstEnabledAt: Value(DateTime(2026, 10, 1, 9)),
+            ),
+          );
+
+      final path = await writeBackup(await repo.exportBytes());
+      await db.customStatement('DELETE FROM "module_state"');
+      expect(await db.select(db.moduleStates).get(), isEmpty);
+
+      await repo.restoreFrom(path);
+
+      final rows = await db.select(db.moduleStates).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.moduleId, 'finance');
+      expect(rows.single.enabled, isFalse);
+      expect(rows.single.sortOrder, 7);
+      expect(rows.single.firstEnabledAt, DateTime(2026, 10, 1, 9));
+    });
+
+    test('恢复 v1 备份（没有 module_state 表）：账本替换、模块开关保持', () async {
+      await seed();
+      await db
+          .into(db.moduleStates)
+          .insert(
+            ModuleStatesCompanion.insert(
+              moduleId: 'finance',
+              enabled: const Value(true),
+              sortOrder: const Value(3),
+            ),
+          );
+
+      // 用 v1 的真实 DDL 造一份旧备份：只有 7 张表、user_version = 1。
+      final v1Path =
+          '${tempDir.path}${Platform.pathSeparator}v1-backup.sqlite3';
+      final raw = sqlite.sqlite3.open(v1Path);
+      final ddl = File('test/fixtures/schema_v1.sql')
+          .readAsStringSync()
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('--'))
+          .join('\n');
+      for (final stmt in ddl.split(';')) {
+        final sql = stmt.trim();
+        if (sql.isEmpty) continue;
+        raw.execute(sql);
+      }
+      raw.execute('PRAGMA user_version = 1');
+      raw.execute(
+        "INSERT INTO accounts (id, name, type, balance_minor, note, sort_order, archived_at, created_at) "
+        "VALUES (1, '旧手机的钱包', 0, 8888, NULL, 0, NULL, 1700000000)",
+      );
+      raw.dispose();
+
+      // 旧版本备份现在允许恢复（#60）。
+      final inspection = await repo.inspect(v1Path);
+      expect(inspection.problem, isNull);
+      expect(inspection.schemaVersion, 1);
+      expect(inspection.accountCount, 1);
+
+      await repo.restoreFrom(v1Path);
+
+      // 账本被旧备份替换……
+      final accounts = await db.select(db.accounts).get();
+      expect(accounts.single.name, '旧手机的钱包');
+      expect(accounts.single.balanceMinor, 8888);
+      // ……但模块开关保持原样（v1 备份里没有这个信息，不该被抹掉）。
+      final states = await db.select(db.moduleStates).get();
+      expect(states.single.moduleId, 'finance');
+      expect(states.single.enabled, isTrue);
+      expect(states.single.sortOrder, 3);
+    });
   });
 }

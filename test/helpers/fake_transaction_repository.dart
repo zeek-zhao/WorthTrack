@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/repositories/budget_repository.dart';
-import 'package:worthtrack/domain/repositories/recurring_repository.dart';
-import 'package:worthtrack/domain/repositories/category_repository.dart';
-import 'package:worthtrack/domain/repositories/transaction_repository.dart';
-import 'package:worthtrack/domain/stats.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/budget_repository.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/recurring_repository.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/category_repository.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/transaction_repository.dart';
+import 'package:worthtrack/modules/finance/domain/stats.dart';
 
 /// 每次订阅先回放当前值，再透传后续事件（解决广播流不缓存历史的问题）。
 /// [src] 用动态类型以复用同一个 broadcast 控制器驱动多种结果类型。

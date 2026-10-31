@@ -1,4 +1,4 @@
-import 'package:worthtrack/domain/repositories/pin_repository.dart';
+import 'package:worthtrack/core/pin/pin_repository.dart';
 
 /// 内存假实现：明文存 PIN（仅测试用），并记录调用次数便于断言。
 class FakePinRepository implements PinRepository {

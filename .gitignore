@@ -41,3 +41,9 @@ integration_test/.dart_tool/
 # --- 日志与临时 ---
 *.log
 .DS_Store
+
+# --- AI 会话临时文件（PR 正文、issue 评论草稿、一次性脚本）---
+.pr_body.md
+.comment_*.md
+scripts/_tmp_*.py
+scripts/_tmp_*.sh

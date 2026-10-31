@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/data/dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/ui/transactions/transactions_page.dart';
+import 'package:worthtrack/modules/finance/ui/transactions/transactions_page.dart';
 
 import '../helpers/fake_account_repository.dart';
 import '../helpers/fake_transaction_repository.dart';

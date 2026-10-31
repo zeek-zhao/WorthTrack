@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:worthtrack/domain/csv_export.dart';
-import 'package:worthtrack/domain/repositories/export_repository.dart';
+import 'package:worthtrack/modules/finance/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/domain/repositories/export_repository.dart';
 
 /// CSV 导出仓储的假实现。
 class FakeExportRepository implements ExportRepository {

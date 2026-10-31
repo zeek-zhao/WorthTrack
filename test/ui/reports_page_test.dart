@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/ui/reports/reports_page.dart';
+import 'package:worthtrack/modules/finance/ui/reports/reports_page.dart';
 
 import '../helpers/fake_transaction_repository.dart';
 

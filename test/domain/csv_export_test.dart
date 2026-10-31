@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/csv_export.dart';
+import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 
 void main() {
   CsvTransactionRow row({

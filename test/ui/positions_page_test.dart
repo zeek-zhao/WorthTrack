@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/domain/price_provider.dart';
-import 'package:worthtrack/ui/positions/positions_page.dart';
+import 'package:worthtrack/modules/finance/domain/price_provider.dart';
+import 'package:worthtrack/modules/finance/ui/positions/positions_page.dart';
 
 import '../helpers/fake_position_repository.dart';
 

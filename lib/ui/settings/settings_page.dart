@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../di.dart';
-import '../../domain/pin_lock.dart';
-import 'backup_section.dart';
-import 'csv_export_section.dart';
-import 'pin_dialogs.dart';
-import 'settings_section.dart';
+import 'package:worthtrack/core/module/module_providers.dart';
+import 'package:worthtrack/core/pin/pin_lock.dart';
+import 'package:worthtrack/core/providers.dart';
+import 'package:worthtrack/ui/settings/backup_section.dart';
+import 'package:worthtrack/ui/settings/pin_dialogs.dart';
+import 'package:worthtrack/ui/settings/settings_section.dart';
 
-/// 设置页：安全 / 备份与恢复 / 数据导出 / 关于四组。
+/// 系统设置页（#45 拆分后）。
+///
+/// 只有两类内容：
+/// 1. **core 系统设置**——PIN 锁、整库备份恢复、模块管理；
+/// 2. **各模块 `settingsTiles` 贡献的条目**——如 finance 的「导出流水（CSV）」。
+///
+/// 设置页本身不认识任何具体模块：新增模块不需要改这个文件。
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
@@ -87,6 +94,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final hasPin = _hasPin;
+    final moduleContext = ref.watch(moduleContextProvider);
+    // 只有**启用中**的模块才贡献设置条目：停用后入口应当一起消失，
+    // 否则「停用了还看得见它的导出按钮」会让人以为没停用成功。
+    final moduleTiles = [
+      for (final module in ref.watch(enabledModulesProvider))
+        ...module.settingsTiles(moduleContext),
+    ];
+
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
@@ -119,7 +134,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           const Divider(height: 1),
           const BackupSection(),
-          const CsvExportSection(),
+          // 模块贡献的条目（如 finance 的「数据导出」）——顺序与模块注册顺序一致。
+          ...moduleTiles,
+          const SettingsSectionHeader('模块'),
+          ListTile(
+            key: const Key('module_management_tile'),
+            leading: const Icon(Icons.widgets_outlined),
+            title: const Text('模块管理'),
+            subtitle: const Text('启用 / 停用 / 清理数据 / 排序'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/modules'),
+          ),
+          const SettingsHint(
+            '停用只把模块从首页隐藏，数据一条都不会删；'
+            '「清理数据」才会真正删除，且无法撤销。',
+          ),
+          const Divider(height: 1),
           const SettingsSectionHeader('关于'),
           const ListTile(
             leading: Icon(Icons.info_outline),

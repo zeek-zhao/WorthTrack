@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart';
 
-import '../dao/account_dao.dart';
-import '../dao/budget_dao.dart';
-import '../dao/category_dao.dart';
-import '../dao/position_dao.dart';
-import '../dao/recurring_dao.dart';
-import '../dao/transaction_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/account_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/budget_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/category_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/position_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/recurring_dao.dart';
+import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -145,6 +145,31 @@ class PriceCache extends Table {
   Set<Column> get primaryKey => {symbol};
 }
 
+/// 模块开关状态表（**core 拥有**，不属任何模块）。
+///
+/// 存的是**用户配置**，所以入库、随备份走；
+/// 对比 PIN 凭据留在 `pin_lock.json` 不入库——那是设备本地凭据，换机本就不该带走。
+class ModuleStates extends Table {
+  /// 表名用单数：与 wiki 的 `module_state` 保持一致（drift 默认会写成 module_states）。
+  @override
+  String get tableName => 'module_state';
+
+  /// 模块 id，与 `AppModule.id` 一致（finance / watchlist / notes / game）。
+  TextColumn get moduleId => text()();
+
+  /// 是否启用。**停用只改这一列，业务数据一行不动**。
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+
+  /// launcher 排序，用户自定义后覆盖 `AppModule.defaultOrder`。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 首次启用时间，null 表示从未启用过。
+  DateTimeColumn get firstEnabledAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {moduleId};
+}
+
 /// WorthTrack 主数据库。
 ///
 /// - 全部金额以「分」为单位的整数存储，见 lib/core/money.dart
@@ -158,6 +183,7 @@ class PriceCache extends Table {
     RecurringRules,
     Positions,
     PriceCache,
+    ModuleStates,
   ],
   daos: [
     AccountDao,
@@ -172,16 +198,22 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
-  final MigrationStrategy _migration = MigrationStrategy(
+  // 必须是 getter 而不是字段初始化器：字段初始化器里访问不到 this 的成员，
+  // 而 onUpgrade 需要 `moduleStates` 这个生成的表 getter。
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
       // v1 起步：后续版本升级在此按 from 分支追加，禁止修改旧表结构历史。
-      throw UnimplementedError('未处理的数据库迁移: v$from → v$to');
+      //
+      // v1 → v2（#43）：新增 module_state 表。纯加表，不动任何已有表与数据。
+      // 注意用 `if (from < 2)` 而不是 `if (from == 1)`——将来若有人从 v1 直连 v3，
+      // 这一跳仍然要执行。
+      if (from < 2) {
+        await m.createTable(moduleStates);
+      }
     },
   );
-
-  @override
-  MigrationStrategy get migration => _migration;
 }

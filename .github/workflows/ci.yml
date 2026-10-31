@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**'] # feat/**：v2.0 起采用两级分支（issue → feat/m5-modular → main），中间层也要跑 CI
     tags: ['v*'] # 语义化 tag 触发发布（release job）
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/**']
 
 jobs:
   quality:

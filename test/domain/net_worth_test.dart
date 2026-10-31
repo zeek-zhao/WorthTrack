@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/domain/net_worth.dart';
-import 'package:worthtrack/domain/position_valuation.dart';
+import 'package:worthtrack/modules/finance/domain/net_worth.dart';
+import 'package:worthtrack/modules/finance/domain/position_valuation.dart';
 
 /// issue #16 验收：现金+储蓄+投资汇总口径、历史净资产回溯（纯函数）。
 void main() {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../di.dart';
-import '../../domain/backup.dart';
-import 'settings_section.dart';
+import 'package:worthtrack/core/providers.dart';
+import 'package:worthtrack/core/backup/backup.dart';
+import 'package:worthtrack/ui/settings/settings_section.dart';
 
 /// 设置页「备份与恢复」分组（issue #18）。
 ///
