@@ -3472,6 +3472,341 @@ class PriceCacheCompanion extends UpdateCompanion<PriceCacheData> {
   }
 }
 
+class $ModuleStatesTable extends ModuleStates
+    with TableInfo<$ModuleStatesTable, ModuleState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ModuleStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _moduleIdMeta = const VerificationMeta(
+    'moduleId',
+  );
+  @override
+  late final GeneratedColumn<String> moduleId = GeneratedColumn<String>(
+    'module_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _firstEnabledAtMeta = const VerificationMeta(
+    'firstEnabledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> firstEnabledAt =
+      GeneratedColumn<DateTime>(
+        'first_enabled_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    moduleId,
+    enabled,
+    sortOrder,
+    firstEnabledAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'module_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ModuleState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('module_id')) {
+      context.handle(
+        _moduleIdMeta,
+        moduleId.isAcceptableOrUnknown(data['module_id']!, _moduleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moduleIdMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('first_enabled_at')) {
+      context.handle(
+        _firstEnabledAtMeta,
+        firstEnabledAt.isAcceptableOrUnknown(
+          data['first_enabled_at']!,
+          _firstEnabledAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {moduleId};
+  @override
+  ModuleState map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ModuleState(
+      moduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}module_id'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      firstEnabledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}first_enabled_at'],
+      ),
+    );
+  }
+
+  @override
+  $ModuleStatesTable createAlias(String alias) {
+    return $ModuleStatesTable(attachedDatabase, alias);
+  }
+}
+
+class ModuleState extends DataClass implements Insertable<ModuleState> {
+  /// 模块 id，与 `AppModule.id` 一致（finance / watchlist / notes / game）。
+  final String moduleId;
+
+  /// 是否启用。**停用只改这一列，业务数据一行不动**。
+  final bool enabled;
+
+  /// launcher 排序，用户自定义后覆盖 `AppModule.defaultOrder`。
+  final int sortOrder;
+
+  /// 首次启用时间，null 表示从未启用过。
+  final DateTime? firstEnabledAt;
+  const ModuleState({
+    required this.moduleId,
+    required this.enabled,
+    required this.sortOrder,
+    this.firstEnabledAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['module_id'] = Variable<String>(moduleId);
+    map['enabled'] = Variable<bool>(enabled);
+    map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || firstEnabledAt != null) {
+      map['first_enabled_at'] = Variable<DateTime>(firstEnabledAt);
+    }
+    return map;
+  }
+
+  ModuleStatesCompanion toCompanion(bool nullToAbsent) {
+    return ModuleStatesCompanion(
+      moduleId: Value(moduleId),
+      enabled: Value(enabled),
+      sortOrder: Value(sortOrder),
+      firstEnabledAt: firstEnabledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firstEnabledAt),
+    );
+  }
+
+  factory ModuleState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ModuleState(
+      moduleId: serializer.fromJson<String>(json['moduleId']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      firstEnabledAt: serializer.fromJson<DateTime?>(json['firstEnabledAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'moduleId': serializer.toJson<String>(moduleId),
+      'enabled': serializer.toJson<bool>(enabled),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'firstEnabledAt': serializer.toJson<DateTime?>(firstEnabledAt),
+    };
+  }
+
+  ModuleState copyWith({
+    String? moduleId,
+    bool? enabled,
+    int? sortOrder,
+    Value<DateTime?> firstEnabledAt = const Value.absent(),
+  }) => ModuleState(
+    moduleId: moduleId ?? this.moduleId,
+    enabled: enabled ?? this.enabled,
+    sortOrder: sortOrder ?? this.sortOrder,
+    firstEnabledAt: firstEnabledAt.present
+        ? firstEnabledAt.value
+        : this.firstEnabledAt,
+  );
+  ModuleState copyWithCompanion(ModuleStatesCompanion data) {
+    return ModuleState(
+      moduleId: data.moduleId.present ? data.moduleId.value : this.moduleId,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      firstEnabledAt: data.firstEnabledAt.present
+          ? data.firstEnabledAt.value
+          : this.firstEnabledAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModuleState(')
+          ..write('moduleId: $moduleId, ')
+          ..write('enabled: $enabled, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('firstEnabledAt: $firstEnabledAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(moduleId, enabled, sortOrder, firstEnabledAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ModuleState &&
+          other.moduleId == this.moduleId &&
+          other.enabled == this.enabled &&
+          other.sortOrder == this.sortOrder &&
+          other.firstEnabledAt == this.firstEnabledAt);
+}
+
+class ModuleStatesCompanion extends UpdateCompanion<ModuleState> {
+  final Value<String> moduleId;
+  final Value<bool> enabled;
+  final Value<int> sortOrder;
+  final Value<DateTime?> firstEnabledAt;
+  final Value<int> rowid;
+  const ModuleStatesCompanion({
+    this.moduleId = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.firstEnabledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ModuleStatesCompanion.insert({
+    required String moduleId,
+    this.enabled = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.firstEnabledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : moduleId = Value(moduleId);
+  static Insertable<ModuleState> custom({
+    Expression<String>? moduleId,
+    Expression<bool>? enabled,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? firstEnabledAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (moduleId != null) 'module_id': moduleId,
+      if (enabled != null) 'enabled': enabled,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (firstEnabledAt != null) 'first_enabled_at': firstEnabledAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ModuleStatesCompanion copyWith({
+    Value<String>? moduleId,
+    Value<bool>? enabled,
+    Value<int>? sortOrder,
+    Value<DateTime?>? firstEnabledAt,
+    Value<int>? rowid,
+  }) {
+    return ModuleStatesCompanion(
+      moduleId: moduleId ?? this.moduleId,
+      enabled: enabled ?? this.enabled,
+      sortOrder: sortOrder ?? this.sortOrder,
+      firstEnabledAt: firstEnabledAt ?? this.firstEnabledAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (moduleId.present) {
+      map['module_id'] = Variable<String>(moduleId.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (firstEnabledAt.present) {
+      map['first_enabled_at'] = Variable<DateTime>(firstEnabledAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ModuleStatesCompanion(')
+          ..write('moduleId: $moduleId, ')
+          ..write('enabled: $enabled, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('firstEnabledAt: $firstEnabledAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3482,6 +3817,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RecurringRulesTable recurringRules = $RecurringRulesTable(this);
   late final $PositionsTable positions = $PositionsTable(this);
   late final $PriceCacheTable priceCache = $PriceCacheTable(this);
+  late final $ModuleStatesTable moduleStates = $ModuleStatesTable(this);
   late final AccountDao accountDao = AccountDao(this as AppDatabase);
   late final TransactionDao transactionDao = TransactionDao(
     this as AppDatabase,
@@ -3502,6 +3838,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     recurringRules,
     positions,
     priceCache,
+    moduleStates,
   ];
 }
 
@@ -6397,6 +6734,189 @@ typedef $$PriceCacheTableProcessedTableManager =
       PriceCacheData,
       PrefetchHooks Function()
     >;
+typedef $$ModuleStatesTableCreateCompanionBuilder =
+    ModuleStatesCompanion Function({
+      required String moduleId,
+      Value<bool> enabled,
+      Value<int> sortOrder,
+      Value<DateTime?> firstEnabledAt,
+      Value<int> rowid,
+    });
+typedef $$ModuleStatesTableUpdateCompanionBuilder =
+    ModuleStatesCompanion Function({
+      Value<String> moduleId,
+      Value<bool> enabled,
+      Value<int> sortOrder,
+      Value<DateTime?> firstEnabledAt,
+      Value<int> rowid,
+    });
+
+class $$ModuleStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $ModuleStatesTable> {
+  $$ModuleStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get moduleId => $composableBuilder(
+    column: $table.moduleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get firstEnabledAt => $composableBuilder(
+    column: $table.firstEnabledAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ModuleStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ModuleStatesTable> {
+  $$ModuleStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get moduleId => $composableBuilder(
+    column: $table.moduleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get firstEnabledAt => $composableBuilder(
+    column: $table.firstEnabledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ModuleStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ModuleStatesTable> {
+  $$ModuleStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get moduleId =>
+      $composableBuilder(column: $table.moduleId, builder: (column) => column);
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get firstEnabledAt => $composableBuilder(
+    column: $table.firstEnabledAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ModuleStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ModuleStatesTable,
+          ModuleState,
+          $$ModuleStatesTableFilterComposer,
+          $$ModuleStatesTableOrderingComposer,
+          $$ModuleStatesTableAnnotationComposer,
+          $$ModuleStatesTableCreateCompanionBuilder,
+          $$ModuleStatesTableUpdateCompanionBuilder,
+          (
+            ModuleState,
+            BaseReferences<_$AppDatabase, $ModuleStatesTable, ModuleState>,
+          ),
+          ModuleState,
+          PrefetchHooks Function()
+        > {
+  $$ModuleStatesTableTableManager(_$AppDatabase db, $ModuleStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ModuleStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ModuleStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ModuleStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> moduleId = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime?> firstEnabledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ModuleStatesCompanion(
+                moduleId: moduleId,
+                enabled: enabled,
+                sortOrder: sortOrder,
+                firstEnabledAt: firstEnabledAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String moduleId,
+                Value<bool> enabled = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime?> firstEnabledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ModuleStatesCompanion.insert(
+                moduleId: moduleId,
+                enabled: enabled,
+                sortOrder: sortOrder,
+                firstEnabledAt: firstEnabledAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ModuleStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ModuleStatesTable,
+      ModuleState,
+      $$ModuleStatesTableFilterComposer,
+      $$ModuleStatesTableOrderingComposer,
+      $$ModuleStatesTableAnnotationComposer,
+      $$ModuleStatesTableCreateCompanionBuilder,
+      $$ModuleStatesTableUpdateCompanionBuilder,
+      (
+        ModuleState,
+        BaseReferences<_$AppDatabase, $ModuleStatesTable, ModuleState>,
+      ),
+      ModuleState,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6415,4 +6935,6 @@ class $AppDatabaseManager {
       $$PositionsTableTableManager(_db, _db.positions);
   $$PriceCacheTableTableManager get priceCache =>
       $$PriceCacheTableTableManager(_db, _db.priceCache);
+  $$ModuleStatesTableTableManager get moduleStates =>
+      $$ModuleStatesTableTableManager(_db, _db.moduleStates);
 }

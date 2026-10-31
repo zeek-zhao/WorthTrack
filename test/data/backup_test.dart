@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:worthtrack/modules/finance/data/backup/database_backup_repository.dart';
 import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
 import 'package:worthtrack/data/db/app_database.dart';
@@ -159,7 +160,7 @@ void main() {
 
     final inspection = await repo.inspect(path);
     expect(inspection.problem, isNull);
-    expect(inspection.schemaVersion, 1);
+    expect(inspection.schemaVersion, 2);
     expect(inspection.accountCount, 2);
     expect(inspection.transactionCount, 2);
     expect(inspection.positionCount, 1);
@@ -321,5 +322,90 @@ void main() {
     await repo.restoreFrom(path);
 
     expect(await snapshot(db), before);
+  });
+
+  group('module_state 随备份走（#43）', () {
+    test('v2 备份往返后模块开关与排序一致', () async {
+      await seed();
+      await db
+          .into(db.moduleStates)
+          .insert(
+            ModuleStatesCompanion.insert(
+              moduleId: 'finance',
+              enabled: const Value(false),
+              sortOrder: const Value(7),
+              firstEnabledAt: Value(DateTime(2026, 10, 1, 9)),
+            ),
+          );
+
+      final path = await writeBackup(await repo.exportBytes());
+      await db.customStatement('DELETE FROM "module_state"');
+      expect(await db.select(db.moduleStates).get(), isEmpty);
+
+      await repo.restoreFrom(path);
+
+      final rows = await db.select(db.moduleStates).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.moduleId, 'finance');
+      expect(rows.single.enabled, isFalse);
+      expect(rows.single.sortOrder, 7);
+      expect(rows.single.firstEnabledAt, DateTime(2026, 10, 1, 9));
+    });
+
+    test('恢复 v1 备份（没有 module_state 表）当前被版本规则拦下', () async {
+      await seed();
+      await db
+          .into(db.moduleStates)
+          .insert(
+            ModuleStatesCompanion.insert(
+              moduleId: 'finance',
+              enabled: const Value(true),
+              sortOrder: const Value(3),
+            ),
+          );
+
+      // 用 v1 的真实 DDL 造一份旧备份：只有 7 张表、user_version = 1。
+      final v1Path =
+          '${tempDir.path}${Platform.pathSeparator}v1-backup.sqlite3';
+      final raw = sqlite.sqlite3.open(v1Path);
+      final ddl = File('test/fixtures/schema_v1.sql')
+          .readAsStringSync()
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('--'))
+          .join('\n');
+      for (final stmt in ddl.split(';')) {
+        final sql = stmt.trim();
+        if (sql.isEmpty) continue;
+        raw.execute(sql);
+      }
+      raw.execute('PRAGMA user_version = 1');
+      raw.execute(
+        "INSERT INTO accounts (id, name, type, balance_minor, note, sort_order, archived_at, created_at) "
+        "VALUES (1, '旧手机的钱包', 0, 8888, NULL, 0, NULL, 1700000000)",
+      );
+      raw.dispose();
+
+      final inspection = await repo.inspect(v1Path);
+      expect(inspection.schemaVersion, 1);
+      // ⚠️ 当前策略：任何「旧版本」备份一律拒绝（validateBackup 的 schemaOlder 分支）。
+      // 这意味着 v2.0 上线后，用户升级前导出的 v1 备份**无法恢复**。
+      // 这是产品级取舍，需与需求方确认后再决定是否放开（放开后靠
+      // 「只替换备份里存在的表 + 事务回滚」保证安全）。
+      expect(inspection.problem, BackupProblem.schemaOlder);
+      await expectLater(
+        repo.restoreFrom(v1Path),
+        throwsA(
+          isA<BackupException>().having(
+            (e) => e.problem,
+            'problem',
+            BackupProblem.schemaOlder,
+          ),
+        ),
+      );
+      // 被拒绝时账本与模块开关都必须原样不动。
+      final accounts = await db.select(db.accounts).get();
+      expect(accounts.any((a) => a.name == '旧手机的钱包'), isFalse);
+      expect((await db.select(db.moduleStates).get()).single.sortOrder, 3);
+    });
   });
 }
