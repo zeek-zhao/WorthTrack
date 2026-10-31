@@ -7,9 +7,10 @@
 
 ## 0. 一句话现状
 
-`main = f680786`（已发 **v1.0.0**），集成分支 `feat/m5-modular` 上 M5 进度 **3/6**：
-#41 契约、#42 finance 搬迁、#43 schema v2 均已完成（PR #57/#58/#59），测试基线 **325**，
-下一步 #44（launcher + go_router 导航重构）。
+`main = f680786`（已发 **v1.0.0**），集成分支 `feat/m5-modular` 上 M5 进度 **4/6**：
+#41 契约、#42 finance 搬迁、#43 schema v2、#44 launcher + go_router 均已完成
+（PR #57/#58/#59/#61，另 #60 放开旧备份恢复），测试基线 **381**，
+下一步 #45（模块管理页 + 设置页拆分）。
 
 ---
 
@@ -17,9 +18,9 @@
 
 ```bash
 cd /d/zeek/WorkBuddy/WorthTrack
-git log --oneline -3                                  # 应为 9464a2f 起
+git log --oneline -3                                  # 应为 #44 的提交起
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 299 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 381 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -49,9 +50,13 @@ lib/
   core/                         # 共享内核（core 级，不属任何模块）
     money.dart                  #   分↔元转换
     stream_utils.dart           #   combineLatest2/3，组合多个 drift watch 流
-    module/app_module.dart      #   ⚠️ AppModule 契约 + ModuleContext + ModuleLogger（#41）
+    module/app_module.dart      #   ⚠️ AppModule 契约 + ModuleContext + ModuleLogger（#41/#44）
     module/module_registry.dart #   ⚠️ appModules 注册表 + validateModuleRegistry 校验（#41）
-  data/db/app_database.dart     # ⚠️ 全模块装配点：7 张表 + 枚举 + AppDatabase 同文件，schemaVersion = 1
+    module/module_state_repository.dart  # module_state 读写（#44，停用只改一列）
+    module/module_providers.dart#   启用集合 / 模块状态仓储 / 痕迹存储的 provider（#44）
+    last_module_store.dart      #   「上次停留模块」落 last_module.json（#44，不入库、不随备份）
+    router.dart                 #   ⚠️ createAppRouter + resolveInitialLocation（#44）
+  data/db/app_database.dart     # ⚠️ 全模块装配点：8 张表 + 枚举 + AppDatabase 同文件，schemaVersion = 2
   modules/finance/              # ← #42 搬迁后的位置
     domain/                     #   纯逻辑：position_valuation / net_worth / price_provider /
                                 #   recurring_logic / stats / backup / csv_export / pin_lock
@@ -64,10 +69,12 @@ lib/
       pin/pin_store.dart        #   PIN 凭据落 <应用支持目录>/pin_lock.json（不进 DB）
       files/file_save_picker.dart
     ui/{transactions,reports,accounts,positions,recurring}/
+    finance_module.dart         #   ⚠️ 模块声明：id/name/order/ownedTables/routes/quickActions（#44）
+    ui/finance_shell.dart       #   模块内部四 tab + 左下角回 launcher 的出口（#44）
   ui/                           # core 级外壳
-    home_page.dart              # ⚠️ IndexedStack + 5 个硬编码 tab（#44 要拆成 launcher）
+    launcher/launcher_page.dart # ⚠️ 应用首页九宫格 + 快捷动作，不认识任何具体模块（#44）
     lock/ settings/             #   PIN 锁屏、系统设置（#45 要拆分）
-test/                           # 316 个单测 + Widget 测试
+test/                           # 381 个单测 + Widget 测试
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
 docs/{ai-changelog,troubleshooting,issues-backlog,money-paths-coverage}.md
 wiki/                           # 需求与流程的唯一权威来源（GitHub wiki 的副本）
@@ -78,14 +85,16 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 不要写相对 `../`——历史上 `lib/domain/repositories/` 里有 4 处写成 `../../../data/db`，
 实际指向仓库根，潜伏了很久才在搬迁时暴露。
 
-**当前 7 张表**：accounts / categories / transactions / budgets / recurring_rules / positions / price_cache。
+**当前 8 张表**：accounts / categories / transactions / budgets / recurring_rules / positions / price_cache / **module_state**（core 拥有）。
 
 ---
 
 ## 4. 铁律（违反会直接翻车，别自行放宽）
 
 1. **AI 读需求只从 `wiki/` 读**（GitHub wiki 是权威，Obsidian vault 只是起草区）。
-2. **schemaVersion 仍是 1，从未写过 migration**。v2.0 加表将是本项目**第一次写 `onUpgrade`**，必须配迁移测试。
+2. **schemaVersion 现为 2**（v1→v2 已在 #43 完成，加 `module_state` 表）。
+   之后任何升级**只在 `onUpgrade` 按 `if (from < N)` 追加分支**，禁止改动旧表结构历史，
+   且必须配迁移测试（做法见 `test/data/migration_v1_to_v2_test.dart`：用真实 v1 库夹具升级后逐表比对）。
 3. **金额只用整数分**，任何浮点金额都是 bug。
 4. **碰钱路径（写交易/改余额）必须在同一事务内**完成。
 5. **CI 三关硬门槛**：`dart format --set-exit-if-changed` + `flutter analyze --fatal-warnings` + `flutter test` 全绿。
@@ -110,7 +119,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**325 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份）
+- 测试基线：**381 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态）
 
 ---
 
@@ -183,10 +192,10 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 | 序 | 任务 | 验收标准 |
 |---|---|---|
-| 1 | #41 抽 `core/` + 定义 `AppModule` / `ModuleContext` | 契约字段齐（id/name/icon/defaultOrder/dependsOn/ownedTables/routes/settingsTiles/onEnable/onDisable/onClear）；模块不 import `di.dart` |
-| 2 | #42 finance 整体迁入 `lib/modules/finance/` | **纯重构提交**：`git mv` 保留历史、测试数精确 = **316**（不是 299，299 是 v0.4.0 基线）、提交内无 `feat:` |
-| 3 | #43 schema v2：`module_state` 表 + 首次 `onUpgrade` | 迁移测试：造 v1 库 → 升级 → 逐表比对无损 |
-| 4 | #44 launcher + `go_router` 导航 | 每模块独立返回栈；冷启动恢复上次模块；30 分钟超时回 launcher；「记一笔」始终 1 步 |
+| 1 | #41 抽 `core/` + 定义 `AppModule` / `ModuleContext` | ✅ 已完成（PR #57） |
+| 2 | #42 finance 整体迁入 `lib/modules/finance/` | ✅ 已完成（PR #58，测试数 316） |
+| 3 | #43 schema v2：`module_state` 表 + 首次 `onUpgrade` | ✅ 已完成（PR #59） |
+| 4 | #44 launcher + `go_router` 导航 | ✅ 已完成（PR #62）：冷启动恢复上次模块 / 30 分钟超时 / 「记一笔」1 步 |
 | 5 | #45 模块管理页 + 设置页拆分 | 停用/清理是两个独立入口；**停用 finance 后仍能进模块管理页重新启用** |
 | 6 | #46 架构测试 | 禁止跨模块访问他人表（按 `ownedTables` 校验）；禁止模块 import `di.dart`；`ownedTables` 与真实表一一对应 |
 
