@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/core/money.dart';
-import 'package:worthtrack/di.dart';
 import 'package:worthtrack/modules/finance/domain/stats.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 import 'package:worthtrack/modules/finance/ui/recurring/recurring_page.dart';
 import 'package:worthtrack/modules/finance/ui/reports/budgets_page.dart';
 

@@ -7,10 +7,11 @@
 
 ## 0. 一句话现状
 
-`main = f680786`（已发 **v1.0.0**），集成分支 `feat/m5-modular` 上 M5 进度 **5/6**：
-#41 契约、#42 finance 搬迁、#43 schema v2、#44 launcher + go_router、#45 模块管理页与设置页拆分
-均已完成（PR #57/#58/#59/#61/#62/#63，另 #60 放开旧备份恢复），测试基线 **423**，
-下一步 #46（架构测试，M5 收口）。
+`main = f680786`（已发 **v1.0.0**），集成分支 `feat/m5-modular` 上 M5 进度 **6/6（全部完成）**：
+#41 契约、#42 finance 搬迁、#43 schema v2、#44 launcher + go_router、#45 模块管理页与设置页拆分、
+#46 架构测试
+均已完成（PR #57/#58/#59/#61/#62/#63/#64，另 #60 放开旧备份恢复），测试基线 **444**，
+下一步 M5 收口整体 PR（`feat/m5-modular` → `main`）。
 
 ---
 
@@ -20,7 +21,7 @@
 cd /d/zeek/WorkBuddy/WorthTrack
 git log --oneline -3                                  # 应为 #44 的提交起
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 423 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 444 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -80,7 +81,8 @@ lib/
     settings/settings_page.dart # ⚠️ core 系统设置 + 各模块 settingsTiles（#45）
     settings/module_management_page.dart  # 启用/停用/清理/排序（#45）
     lock/                       #   PIN 锁屏与门卫
-test/                           # 423 个单测 + Widget 测试
+test/                           # 444 个单测 + Widget 测试
+test/architecture/              #   ⚠️ 模块边界扫描：越界访问他人表 / import di.dart / core 反向依赖（#46）
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
 docs/{ai-changelog,troubleshooting,issues-backlog,money-paths-coverage}.md
 wiki/                           # 需求与流程的唯一权威来源（GitHub wiki 的副本）
@@ -114,6 +116,9 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 11. **模块不 import `di.dart`**（#45 起的分层）：core 服务从 `core/providers.dart` 拿，
     自己的仓储放模块内的 `*_providers.dart`；`di.dart` 只做 re-export，是装配入口。
     `core/` 也不许反向 import 模块——唯一例外是 `module_registry.dart` 的注册表与 `di.dart`。
+    **这条不是靠自觉**：#46 的 `test/architecture/` 会扫源码，越界直接让 PR 变红。
+12. **新增表要同步三处**：`AppDatabase` 的表定义、某模块的 `ownedTables`、`test/architecture/module_boundary_rules.dart` 的 `knownTables`。
+    漏了第三处，越界扫描会静默漏掉那张表（有专门的用例守着）。
 
 ---
 
@@ -128,7 +133,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**423 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁）
+- 测试基线：**444 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界）
 
 ---
 
@@ -206,7 +211,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 | 3 | #43 schema v2：`module_state` 表 + 首次 `onUpgrade` | ✅ 已完成（PR #59） |
 | 4 | #44 launcher + `go_router` 导航 | ✅ 已完成（PR #62）：冷启动恢复上次模块 / 30 分钟超时 / 「记一笔」1 步 |
 | 5 | #45 模块管理页 + 设置页拆分 | ✅ 已完成（PR #63）：停用/清理独立入口；停用全部模块后仍能进模块管理重新启用 |
-| 6 | #46 架构测试 | 禁止跨模块访问他人表（按 `ownedTables` 校验）；禁止模块 import `di.dart`；`ownedTables` 与真实表一一对应 |
+| 6 | #46 架构测试 | ✅ 已完成（PR #64）：扫源码守三条边界，`ownedTables` ↔ schema 双向一致，规则本身有自检用例 |
 
 之后：M6 记事本 → M7 关注与提醒 → M8 游戏与发版。
 

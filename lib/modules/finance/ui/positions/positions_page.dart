@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/di.dart';
 import 'package:worthtrack/modules/finance/domain/position_valuation.dart';
 import 'package:worthtrack/modules/finance/domain/repositories/position_repository.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 
 /// A 股习惯：涨红跌绿。
 const _upColor = Color(0xFFEF5350);

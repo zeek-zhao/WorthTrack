@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
-import 'package:worthtrack/di.dart';
 import 'package:worthtrack/modules/finance/domain/net_worth.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 
 /// 账户类型的中文展示名。
 const _typeLabels = <AccountType, String>{

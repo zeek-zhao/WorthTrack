@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worthtrack/core/money.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 import 'package:worthtrack/modules/finance/data/dao/transaction_dao.dart';
-import 'package:worthtrack/di.dart';
+import 'package:worthtrack/modules/finance/finance_providers.dart';
 import 'package:worthtrack/modules/finance/ui/transactions/transaction_edit_dialog.dart';
 
 /// 明细页：按月流水列表，支持关键词搜索与类型/账户/分类组合筛选（issue #12）。
