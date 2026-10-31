@@ -7,8 +7,9 @@
 
 ## 0. 一句话现状
 
-`main = 9464a2f`，工作区干净，与 origin 同步；**v0.4.0 已发布**（APK + Linux 包）；
-M1–M4 共 22 个 issue 全部关闭；**v2.0「模块化工具箱」需求与架构决策已定稿，但一行代码都还没写**。
+`main = b7e9c5f`，工作区干净，与 origin 同步；**v0.4.0 已发布**（APK + Linux 包）；
+M1–M4 共 22 个 issue 全部关闭；**v2.0 的 16 条 issue 已建（#41–#56），分支 `feat/m5-modular` 已就位，
+但代码一行都还没写**。
 
 ---
 
@@ -131,9 +132,11 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 
 ### A. 阻塞项（动手前必须先处理）
 
-1. **M5–M8 的 16 条 issue 还没建到 GitHub**，只存在于 `docs/issues-backlog.md`。
-   建 issue 的脚本：`scripts/create_issues.py`（token 在 WSL `~/.config/worthtrack/gh_token`）。看板卡片用 `scripts/board_done.py` 等。
-2. **还没建 v2.0 分支**（建议 `feat/m5-modular`）。
+1. ~~M5–M8 的 16 条 issue 还没建到 GitHub~~ → **已解决（2026-10-31）**：已建 #41–#56，
+   标签 M5/M6/M7/M8 已创建，`docs/issues-backlog.md` 已回填编号。
+   建 issue 用 `scripts/create_issues_v2.py`（**幂等**，按标题查重，可重复跑；`--dry-run` 先看）。
+   ⚠️ 旧的 `scripts/create_issues.py` **没有查重**且含 M1–M4 全部 22 条，再跑会重复建，别用。
+2. ~~还没建 v2.0 分支~~ → **已解决**：`feat/m5-modular` 已创建并推送到 origin。
 3. **v1.0.0 要不要发**：wiki v1.0 验收标准第 3 条「真机手测清单逐项通过」一直没做，所以只有 v0.4.0。
    现在方向已转向 v2.0，需要你决定：**补发 v1.0.0（先在真机过一遍清单），还是直接奔 v2.0.0**。我倾向直接 v2.0.0，把真机手测合并进 v2.0 的出口条件。
 
@@ -171,12 +174,12 @@ scripts/                        # 31 个流水线/环境脚本，见 §9
 
 | 序 | 任务 | 验收标准 |
 |---|---|---|
-| 1 | 抽 `core/` + 定义 `AppModule` / `ModuleContext` | 契约字段齐（id/name/icon/defaultOrder/dependsOn/ownedTables/routes/settingsTiles/onEnable/onDisable/onClear）；模块不 import `di.dart` |
-| 2 | finance 整体迁入 `lib/modules/finance/` | **纯重构提交**：`git mv` 保留历史、测试数精确 = 299、提交内无 `feat:` |
-| 3 | schema v2：`module_state` 表 + 首次 `onUpgrade` | 迁移测试：造 v1 库 → 升级 → 逐表比对无损 |
-| 4 | launcher + `go_router` 导航 | 每模块独立返回栈；冷启动恢复上次模块；30 分钟超时回 launcher；「记一笔」始终 1 步 |
-| 5 | 模块管理页 + 设置页拆分 | 停用/清理是两个独立入口；**停用 finance 后仍能进模块管理页重新启用** |
-| 6 | 架构测试 | 禁止跨模块访问他人表（按 `ownedTables` 校验）；禁止模块 import `di.dart`；`ownedTables` 与真实表一一对应 |
+| 1 | #41 抽 `core/` + 定义 `AppModule` / `ModuleContext` | 契约字段齐（id/name/icon/defaultOrder/dependsOn/ownedTables/routes/settingsTiles/onEnable/onDisable/onClear）；模块不 import `di.dart` |
+| 2 | #42 finance 整体迁入 `lib/modules/finance/` | **纯重构提交**：`git mv` 保留历史、测试数精确 = 299、提交内无 `feat:` |
+| 3 | #43 schema v2：`module_state` 表 + 首次 `onUpgrade` | 迁移测试：造 v1 库 → 升级 → 逐表比对无损 |
+| 4 | #44 launcher + `go_router` 导航 | 每模块独立返回栈；冷启动恢复上次模块；30 分钟超时回 launcher；「记一笔」始终 1 步 |
+| 5 | #45 模块管理页 + 设置页拆分 | 停用/清理是两个独立入口；**停用 finance 后仍能进模块管理页重新启用** |
+| 6 | #46 架构测试 | 禁止跨模块访问他人表（按 `ownedTables` 校验）；禁止模块 import `di.dart`；`ownedTables` 与真实表一一对应 |
 
 之后：M6 记事本 → M7 关注与提醒 → M8 游戏与发版。
 
