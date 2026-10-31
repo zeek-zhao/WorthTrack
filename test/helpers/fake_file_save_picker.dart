@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:worthtrack/modules/finance/data/files/file_save_picker.dart';
+import 'package:worthtrack/core/files/file_save_picker.dart';
 
 /// 文件选择器的假实现：直接把预设路径返回给调用方。
 class FakeFileSavePicker implements FileSavePicker {

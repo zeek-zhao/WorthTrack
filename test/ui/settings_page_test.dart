@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worthtrack/di.dart';
-import 'package:worthtrack/modules/finance/domain/backup.dart';
+import 'package:worthtrack/core/backup/backup.dart';
 import 'package:worthtrack/modules/finance/domain/csv_export.dart';
 import 'package:worthtrack/ui/settings/settings_page.dart';
 
