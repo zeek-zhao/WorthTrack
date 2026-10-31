@@ -32,7 +32,12 @@ enum BackupProblem {
   notSqlite('这不是 WorthTrack 的备份文件（不是 SQLite 数据库）'),
   missingTables('备份文件缺少必要的数据表，可能已损坏'),
   schemaNewer('备份来自更新版本的 WorthTrack，请先升级应用再恢复'),
-  schemaOlder('备份来自更早版本的 WorthTrack，当前版本不支持直接恢复'),
+
+  /// 备份的 schema 版本读不出来（`user_version <= 0`）。
+  ///
+  /// 注意：**「旧版本备份」不再走这个分支**——从 v2 起旧备份允许恢复（#60），
+  /// 这里只拦「版本信息不可读」的异常文件。
+  schemaOlder('备份的版本信息读不出来，可能已损坏'),
   sameDatabase('这是应用正在使用的账本文件，请选择一份备份文件'),
   restoreFailed('恢复过程中出错，当前数据没有被改动'),
   unreadable('读取失败，请确认文件没有被其他应用占用');
@@ -62,7 +67,12 @@ BackupProblem? validateBackup({
   if (fileSchemaVersion > currentSchemaVersion) {
     return BackupProblem.schemaNewer;
   }
-  if (fileSchemaVersion < currentSchemaVersion) {
+  // 旧版本备份**允许恢复**（#60）：恢复只替换备份里真实存在的表，缺的表跳过、
+  // 当前配置不被抹掉；列不匹配会让单事务整体回滚，不会写坏数据。
+  //
+  // 但版本号读不出来（<= 0）仍然拒绝：那说明文件不是本应用正常写出的，
+  // 属于「损坏 / 不是备份」的范畴，不该拿它覆盖账本。
+  if (fileSchemaVersion <= 0) {
     return BackupProblem.schemaOlder;
   }
   return null;

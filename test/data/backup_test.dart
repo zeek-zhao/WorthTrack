@@ -352,7 +352,7 @@ void main() {
       expect(rows.single.firstEnabledAt, DateTime(2026, 10, 1, 9));
     });
 
-    test('恢复 v1 备份（没有 module_state 表）当前被版本规则拦下', () async {
+    test('恢复 v1 备份（没有 module_state 表）：账本替换、模块开关保持', () async {
       await seed();
       await db
           .into(db.moduleStates)
@@ -385,27 +385,23 @@ void main() {
       );
       raw.dispose();
 
+      // 旧版本备份现在允许恢复（#60）。
       final inspection = await repo.inspect(v1Path);
+      expect(inspection.problem, isNull);
       expect(inspection.schemaVersion, 1);
-      // ⚠️ 当前策略：任何「旧版本」备份一律拒绝（validateBackup 的 schemaOlder 分支）。
-      // 这意味着 v2.0 上线后，用户升级前导出的 v1 备份**无法恢复**。
-      // 这是产品级取舍，需与需求方确认后再决定是否放开（放开后靠
-      // 「只替换备份里存在的表 + 事务回滚」保证安全）。
-      expect(inspection.problem, BackupProblem.schemaOlder);
-      await expectLater(
-        repo.restoreFrom(v1Path),
-        throwsA(
-          isA<BackupException>().having(
-            (e) => e.problem,
-            'problem',
-            BackupProblem.schemaOlder,
-          ),
-        ),
-      );
-      // 被拒绝时账本与模块开关都必须原样不动。
+      expect(inspection.accountCount, 1);
+
+      await repo.restoreFrom(v1Path);
+
+      // 账本被旧备份替换……
       final accounts = await db.select(db.accounts).get();
-      expect(accounts.any((a) => a.name == '旧手机的钱包'), isFalse);
-      expect((await db.select(db.moduleStates).get()).single.sortOrder, 3);
+      expect(accounts.single.name, '旧手机的钱包');
+      expect(accounts.single.balanceMinor, 8888);
+      // ……但模块开关保持原样（v1 备份里没有这个信息，不该被抹掉）。
+      final states = await db.select(db.moduleStates).get();
+      expect(states.single.moduleId, 'finance');
+      expect(states.single.enabled, isTrue);
+      expect(states.single.sortOrder, 3);
     });
   });
 }
