@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import 'package:worthtrack/modules/finance/domain/pin_lock.dart';
+import 'package:worthtrack/core/pin/pin_lock.dart';
 
 /// PIN 凭据的持久化接口。
 ///

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:worthtrack/modules/finance/domain/backup.dart';
+import 'package:worthtrack/core/backup/backup.dart';
 
 /// 账本备份与恢复（issue #18）。
 abstract class BackupRepository {

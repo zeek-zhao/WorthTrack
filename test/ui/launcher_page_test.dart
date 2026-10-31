@@ -99,6 +99,12 @@ class _NeverEmittingRepository implements ModuleStateRepository {
   Future<void> setSortOrder(ModuleId id, int order) async {}
 
   @override
+  Future<Map<ModuleId, int>> sortOrders() async => const {};
+
+  @override
+  Future<void> setSortOrders(Map<ModuleId, int> orders) async {}
+
+  @override
   Stream<Map<ModuleId, int>> watchSortOrders() =>
       Stream<Map<ModuleId, int>>.empty();
 }

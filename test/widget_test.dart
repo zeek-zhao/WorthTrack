@@ -9,6 +9,7 @@ import 'helpers/fake_account_repository.dart';
 import 'helpers/fake_backup_repository.dart';
 import 'helpers/fake_export_repository.dart';
 import 'helpers/fake_file_save_picker.dart';
+import 'helpers/fake_module_data_cleaner.dart';
 import 'helpers/fake_module_state_repository.dart';
 import 'helpers/fake_net_worth_repository.dart';
 import 'helpers/fake_pin_repository.dart';
@@ -32,6 +33,7 @@ void main() {
   late FakeExportRepository exportRepo;
   late FakeFileSavePicker picker;
   late FakeModuleStateRepository moduleStateRepo;
+  late FakeModuleDataCleaner moduleCleaner;
 
   setUp(() {
     accountRepo = FakeAccountRepository();
@@ -46,9 +48,10 @@ void main() {
     exportRepo = FakeExportRepository();
     picker = FakeFileSavePicker();
     moduleStateRepo = FakeModuleStateRepository();
+    moduleCleaner = FakeModuleDataCleaner();
   });
 
-  tearDown(() {
+  tearDown(() async {
     accountRepo.dispose();
     categoryRepo.dispose();
     txnRepo.dispose();
@@ -56,6 +59,7 @@ void main() {
     recurringRepo.dispose();
     positionRepo.dispose();
     netWorthRepo.dispose();
+    await moduleStateRepo.dispose();
   });
 
   Future<void> pumpApp(
@@ -77,6 +81,7 @@ void main() {
           exportRepositoryProvider.overrideWithValue(exportRepo),
           fileSavePickerProvider.overrideWithValue(picker),
           moduleStateRepositoryProvider.overrideWithValue(moduleStateRepo),
+          moduleDataCleanerProvider.overrideWithValue(moduleCleaner),
         ],
         child: WorthTrackApp(initialLocation: initialLocation),
       ),
@@ -138,7 +143,7 @@ void main() {
     expect(find.text('明细'), findsNothing);
   });
 
-  testWidgets('从 launcher 能进设置页：PIN / 备份 / CSV 导出都在', (tester) async {
+  testWidgets('从 launcher 能进设置页：PIN / 备份 / CSV 导出 / 模块管理都在', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.byKey(const Key('launcher-settings')));
@@ -147,8 +152,76 @@ void main() {
     expect(find.text('启动 PIN 锁'), findsOneWidget);
     expect(find.text('备份与恢复'), findsOneWidget);
     expect(find.text('导出备份'), findsOneWidget);
+    // 由 finance 模块通过 settingsTiles 贡献（#45）。
     expect(find.text('数据导出'), findsOneWidget);
     expect(find.text('导出流水（CSV）'), findsOneWidget);
+    // 「模块管理」在设置页底部，需要滚到可见（ListView 懒构建）。
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('module_management_tile')),
+      200,
+    );
+    expect(find.byKey(const Key('module_management_tile')), findsOneWidget);
+  });
+
+  testWidgets('停用 finance 后设置页里它贡献的条目一起消失', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.byKey(const Key('launcher-settings')));
+    await tester.pumpAndSettle();
+    expect(find.text('导出流水（CSV）'), findsOneWidget);
+
+    await moduleStateRepo.setEnabled('finance', false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('导出流水（CSV）'), findsNothing);
+    // 系统设置本身不受影响，且仍能进模块管理把它打开。
+    expect(find.text('启动 PIN 锁'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('module_management_tile')),
+      200,
+    );
+    expect(find.byKey(const Key('module_management_tile')), findsOneWidget);
+  });
+
+  testWidgets('停用 finance 后仍能进模块管理页重新启用（#45 防死锁硬约束）', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('launcher-settings')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('module_management_tile')),
+      200,
+    );
+    await tester.tap(find.byKey(const Key('module_management_tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('模块管理'), findsOneWidget);
+    expect(find.text('已启用'), findsOneWidget);
+
+    // 停用：只写开关，不动数据。
+    await tester.tap(find.byKey(const Key('module_switch_finance')));
+    await tester.pumpAndSettle();
+    expect(find.text('已停用 · 数据仍保留'), findsOneWidget);
+    expect(moduleStateRepo.enabledCalls, [(id: 'finance', enabled: false)]);
+
+    // 关键：人还站在这一页上，可以直接把它重新打开。
+    await tester.tap(find.byKey(const Key('module_switch_finance')));
+    await tester.pumpAndSettle();
+    expect(find.text('已启用'), findsOneWidget);
+    expect(moduleStateRepo.enabledCalls.last, (id: 'finance', enabled: true));
+  });
+
+  testWidgets('停用后 launcher 上不再显示 finance，启用后回来', (tester) async {
+    await pumpApp(tester);
+    expect(find.byKey(const Key('launcher-module-finance')), findsOneWidget);
+
+    await moduleStateRepo.setEnabled('finance', false);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('launcher-module-finance')), findsNothing);
+    expect(find.text('所有模块都停用了，去设置里重新启用'), findsOneWidget);
+
+    await moduleStateRepo.setEnabled('finance', true);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('launcher-module-finance')), findsOneWidget);
   });
 
   testWidgets('已设 PIN 时启动先出锁屏，解锁后才进 launcher', (tester) async {

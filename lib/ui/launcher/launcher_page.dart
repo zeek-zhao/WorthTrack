@@ -4,25 +4,19 @@ import 'package:go_router/go_router.dart';
 
 import 'package:worthtrack/core/module/app_module.dart';
 import 'package:worthtrack/core/module/module_providers.dart';
-import 'package:worthtrack/core/module/module_registry.dart';
 
 /// 首页 launcher：模块九宫格 + 常驻快捷动作。
 ///
 /// 它**不认识任何具体模块**：模块卡片来自注册表，快捷动作来自各模块的
-/// `quickActions`，所以停用/新增模块都不需要改这个文件。
+/// `quickActions`，所以停用/新增模块、改排序都不需要改这个文件。
 class LauncherPage extends ConsumerWidget {
   const LauncherPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 首次加载（DB 还没回）时先按「全部启用」渲染，避免闪一下空列表。
-    // Riverpod 3 里 `AsyncValue.value` 就是可空的，不再有 `valueOrNull`。
-    final enabled =
-        ref.watch(enabledModuleIdsProvider).value ??
-        {for (final module in appModules) module.id};
-    final modules = modulesByOrder(
-      appModules,
-    ).where((m) => enabled.contains(m.id)).toList();
+    // 已启用 + 已按「自定义排序 > 默认排序」排好；首帧 DB 还没回时按全部启用渲染，
+    // 避免闪一下空列表。
+    final modules = ref.watch(enabledModulesProvider);
     final shortcuts = [
       for (final module in modules) ...module.quickActions(context),
     ];

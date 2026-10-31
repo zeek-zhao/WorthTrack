@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worthtrack/modules/finance/domain/pin_lock.dart';
+import 'package:worthtrack/core/pin/pin_lock.dart';
 
 /// issue #17 验收：PIN 校验规则 + 加盐哈希 + 常量时间比对。
 void main() {

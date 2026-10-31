@@ -11,10 +11,35 @@ const List<AppModule> appModules = <AppModule>[FinanceModule()];
 
 /// 按 [AppModule.defaultOrder] 升序返回模块列表。
 ///
-/// launcher 与模块管理页都读这个顺序；用户自定义排序在 #45 通过 `module_state` 覆盖。
+/// launcher 与模块管理页都读这个顺序；用户自定义排序在 #45 通过 `module_state` 覆盖，
+/// 见 [orderModules]。
 List<AppModule> modulesByOrder([List<AppModule> modules = appModules]) {
   final sorted = List<AppModule>.of(modules);
   sorted.sort((a, b) => a.defaultOrder.compareTo(b.defaultOrder));
+  return sorted;
+}
+
+/// 合并「用户自定义排序」与「模块默认排序」。
+///
+/// 规则：
+/// 1. `sortOrders` 里有记录的模块用记录值，没有的用 `defaultOrder`；
+/// 2. 值相同时按 `defaultOrder` 再按 id 排，保证**同一份输入永远得到同一个顺序**
+///    （否则 launcher 会在两次重建之间跳来跳去）。
+///
+/// 只认 [modules] 里存在的 id：`module_state` 里可能残留已删除模块的记录。
+List<AppModule> orderModules(
+  List<AppModule> modules,
+  Map<ModuleId, int> sortOrders,
+) {
+  int orderOf(AppModule module) => sortOrders[module.id] ?? module.defaultOrder;
+  final sorted = List<AppModule>.of(modules);
+  sorted.sort((a, b) {
+    final byOrder = orderOf(a).compareTo(orderOf(b));
+    if (byOrder != 0) return byOrder;
+    final byDefault = a.defaultOrder.compareTo(b.defaultOrder);
+    if (byDefault != 0) return byDefault;
+    return a.id.compareTo(b.id);
+  });
   return sorted;
 }
 

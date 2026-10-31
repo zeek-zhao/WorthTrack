@@ -124,4 +124,65 @@ void main() {
       }
     }
   });
+
+  group('resolveModuleRedirect（停用后的路由门禁）', () {
+    test('开关还没读到（null）时一律放行，不能把用户挡在门外', () {
+      expect(
+        resolveModuleRedirect(location: '/finance', enabledIds: null),
+        isNull,
+      );
+    });
+
+    test('启用中的模块放行', () {
+      expect(
+        resolveModuleRedirect(location: '/finance', enabledIds: {'finance'}),
+        isNull,
+      );
+    });
+
+    test('已停用模块踢回 launcher', () {
+      expect(
+        resolveModuleRedirect(location: '/finance', enabledIds: const {}),
+        '/',
+      );
+    });
+
+    test('模块内的二级路径同样被拦（按首段判断）', () {
+      expect(
+        resolveModuleRedirect(
+          location: '/finance/detail/42',
+          enabledIds: const {},
+        ),
+        '/',
+      );
+    });
+
+    test('/ 与 /settings 永远放行——防死锁的关键', () {
+      expect(
+        resolveModuleRedirect(location: '/', enabledIds: const {}),
+        isNull,
+      );
+      expect(
+        resolveModuleRedirect(location: '/settings', enabledIds: const {}),
+        isNull,
+      );
+    });
+
+    test('停用全部模块后 /settings/modules 仍然可达', () {
+      expect(
+        resolveModuleRedirect(
+          location: '/settings/modules',
+          enabledIds: const {},
+        ),
+        isNull,
+      );
+    });
+
+    test('未注册的路径放行，交给 go_router 自己报 404', () {
+      expect(
+        resolveModuleRedirect(location: '/ghost', enabledIds: const {}),
+        isNull,
+      );
+    });
+  });
 }

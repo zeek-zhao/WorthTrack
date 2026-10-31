@@ -1,17 +1,18 @@
-/// 数据库备份与恢复的纯逻辑（issue #18）。
+/// 数据库备份与恢复的纯逻辑（issue #18；#45 起归 core——整库备份不属任何模块）。
 ///
 /// 这里只放**不碰 IO 的判定**：文件名生成、大小格式化、以及「一份候选文件
 /// 到底能不能恢复」的校验规则。真正的读写与 SQL 编排在
-/// `lib/data/backup/database_backup_repository.dart`。
+/// `lib/core/backup/database_backup_repository.dart`。
 ///
 /// 为什么不做「备份文件格式」自定义：直接导出 SQLite 库文件即可，
 /// 用户拿任意 sqlite 工具都能打开核对，出问题时也不必依赖本应用解密。
 library;
 
-/// 备份文件里必须存在的表（与 `app_database.dart` 的 v1 schema 一一对应）。
+/// 备份文件里必须存在的表（**v1 schema 基线**，永不随新模块扩张）。
 ///
-/// 只要求**基线表**齐全：未来加了新表，旧备份依然能恢复（新表留空即可），
-/// 因此这里不要随新表一起膨胀。
+/// 只要求**基线表**齐全：未来加了新表（module_state 已经是第一个），旧备份依然能恢复
+/// ——缺的表留空、备份里没有的表不覆盖当前数据。因此这里**不要**随新表一起膨胀：
+/// 一旦把 `notes` / `watchlist` 这类新表加进来，用户手里的旧备份会全部被判「缺表」。
 const Set<String> backupRequiredTables = {
   'accounts',
   'categories',

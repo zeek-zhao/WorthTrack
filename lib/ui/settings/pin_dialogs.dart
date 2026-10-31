@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:worthtrack/modules/finance/domain/pin_lock.dart';
+import 'package:worthtrack/core/pin/pin_lock.dart';
 
 /// 设置/修改 PIN 的对话框：两次输入一致才返回 PIN，取消返回 null。
 class PinSetupDialog extends StatefulWidget {

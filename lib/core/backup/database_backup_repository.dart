@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:worthtrack/modules/finance/domain/backup.dart';
-import 'package:worthtrack/modules/finance/domain/repositories/backup_repository.dart';
+import 'package:worthtrack/core/backup/backup.dart';
+import 'package:worthtrack/core/backup/backup_repository.dart';
 import 'package:worthtrack/data/db/app_database.dart';
 
 /// [BackupRepository] 的 SQLite 实现（issue #18）。

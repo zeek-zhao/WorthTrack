@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:worthtrack/core/module/app_module.dart';
 import 'package:worthtrack/core/module/module_providers.dart';
 import 'package:worthtrack/core/router.dart';
 import 'package:worthtrack/di.dart';
@@ -23,9 +24,15 @@ class WorthTrackApp extends ConsumerStatefulWidget {
 }
 
 class _WorthTrackAppState extends ConsumerState<WorthTrackApp> {
+  /// 已启用模块 id 的「可监听快照」，喂给 go_router 做路由门禁（#45）。
+  /// null = 还没读到，此时一律放行。
+  final ValueNotifier<Set<ModuleId>?> _enabledIds =
+      ValueNotifier<Set<ModuleId>?>(null);
+
   late final GoRouter _router = createAppRouter(
     initialLocation: widget.initialLocation,
     lastModuleStore: ref.read(lastModuleStoreProvider),
+    enabledIds: _enabledIds,
   );
 
   @override
@@ -37,6 +44,7 @@ class _WorthTrackAppState extends ConsumerState<WorthTrackApp> {
   @override
   void dispose() {
     _router.dispose();
+    _enabledIds.dispose();
     super.dispose();
   }
 
@@ -51,6 +59,11 @@ class _WorthTrackAppState extends ConsumerState<WorthTrackApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 模块开关变化 → 通知 router 重新判定当前路由（停用后立刻退出该模块）。
+    ref.listen(enabledModuleIdsProvider, (_, next) {
+      _enabledIds.value = next.value;
+    });
+
     return MaterialApp.router(
       title: 'WorthTrack',
       theme: ThemeData(
