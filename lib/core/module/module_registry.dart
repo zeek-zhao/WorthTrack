@@ -1,5 +1,6 @@
 import 'package:worthtrack/core/module/app_module.dart';
 import 'package:worthtrack/modules/finance/finance_module.dart';
+import 'package:worthtrack/modules/notes/notes_module.dart';
 
 /// 全模块注册表：**显式注册，不用 build_runner 生成**。
 ///
@@ -7,7 +8,7 @@ import 'package:worthtrack/modules/finance/finance_module.dart';
 /// 这条成本约束可以被 diff 直接验证（issue #55）。
 ///
 /// 这里是**装配点**，允许 import 各模块；core 的其他部分不允许反向依赖模块。
-const List<AppModule> appModules = <AppModule>[FinanceModule()];
+const List<AppModule> appModules = <AppModule>[FinanceModule(), NotesModule()];
 
 /// 按 [AppModule.defaultOrder] 升序返回模块列表。
 ///

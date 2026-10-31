@@ -31,11 +31,11 @@ void main() {
   }
 
   group('开库与迁移', () {
-    test('schemaVersion 为 2', () {
-      expect(db.schemaVersion, 2);
+    test('schemaVersion 为 3', () {
+      expect(db.schemaVersion, 3);
     });
 
-    test('onCreate 创建全部八张表（v2 新增 module_state）', () async {
+    test('onCreate 创建全部九张表（v2 加 module_state，v3 加 notes）', () async {
       final allTables = db.allTables.map((t) => t.actualTableName).toSet();
       expect(
         allTables,
@@ -47,6 +47,7 @@ void main() {
           'recurring_rules',
           'positions',
           'price_cache',
+          'notes',
           'module_state',
         ]),
       );

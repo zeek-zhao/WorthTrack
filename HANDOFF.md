@@ -7,10 +7,9 @@
 
 ## 0. 一句话现状
 
-`main = e69928d`（v1.0.0 之后的 **M5 收口**，PR #65），M5 六条 **6/6 全部完成**：
-#41 契约、#42 finance 搬迁、#43 schema v2、#44 launcher + go_router、#45 模块管理页与设置页拆分、
-#46 架构测试（另 #60 放开旧备份恢复），测试基线 **444**。
-下一步 **M6 记事本**（#47 表 + DAO + 仓储）。
+`main = e69928d`（v1.0.0 之后的 **M5 收口**，PR #65），M5 六条 **6/6 全部完成**；
+**M6 记事本进度 1/4**：#47（`notes` 表 + DAO + 仓储 + 模块注册）已完成，测试基线 **478**。
+下一步 **#48 记事本页**（置顶 / 搜索 / 排序打磨；列表与编辑已在 #47 落地）。
 ⚠️ v2.0 代码尚未真机手测，M8 发版前按手测清单走一遍（v1.0.0 已手测通过）。
 
 ---
@@ -21,7 +20,7 @@
 cd /d/zeek/WorkBuddy/WorthTrack
 git log --oneline -3                                  # 应为 #44 的提交起
 bash scripts/wt_flutter.sh flutter --version          # 应为 3.35.4 / Dart 3.9.2
-bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 444 个全绿
+bash scripts/wt_flutter.sh flutter test --reporter compact   # 应为 478 个全绿
 ```
 
 > **所有 flutter / dart 命令必须走 `bash scripts/wt_flutter.sh`**，直接调会因 WSL 的 PATH 与引号污染失败。
@@ -62,7 +61,7 @@ lib/
     backup/                     #   整库备份恢复（#45 从 finance 提到 core）
     pin/                        #   PIN 锁凭据与校验（#45 从 finance 提到 core）
     files/file_save_picker.dart #   另存为（Android SAF / 桌面路径）
-  data/db/app_database.dart     # ⚠️ 全模块装配点：8 张表 + 枚举 + AppDatabase 同文件，schemaVersion = 2
+  data/db/app_database.dart     # ⚠️ 全模块装配点：9 张表 + 枚举 + AppDatabase 同文件，schemaVersion = 3
   modules/finance/              # ← #42 搬迁后的位置
     domain/                     #   纯逻辑：position_valuation / net_worth / price_provider /
                                 #   recurring_logic / stats / csv_export
@@ -76,13 +75,22 @@ lib/
     finance_module.dart         #   ⚠️ 模块声明：id/name/order/ownedTables/tableLabels/routes/quickActions/settingsTiles（#44/#45）
     finance_providers.dart      #   finance 自己的 9 个仓储 provider（#45）
     ui/finance_shell.dart       #   模块内部四 tab + 左下角回 launcher 的出口（#44）
+  modules/notes/                # ← v2.0 第一个**新增**模块（#47）
+    domain/note_text.dart       #   纯逻辑：noteDisplayTitle（空标题退化正文首行）/ formatNoteTime
+    domain/repositories/note_repository.dart
+    data/dao/note_dao.dart      #   watchNotes 的排序在这里（置顶 → updatedAt → id 兜底）
+    data/repositories/note_repository_impl.dart  # updatedAt 由这里维护；now 可注入便于测
+    ui/{notes_page,note_edit_dialog}.dart
+    notes_module.dart           #   模块声明：ownedTables = {notes}，路由 /notes，「写一条」快捷
+    notes_providers.dart        #   noteRepositoryProvider + notesProvider
   ui/                           # core 级外壳
     launcher/launcher_page.dart # ⚠️ 应用首页九宫格 + 快捷动作，不认识任何具体模块（#44）
     settings/settings_page.dart # ⚠️ core 系统设置 + 各模块 settingsTiles（#45）
     settings/module_management_page.dart  # 启用/停用/清理/排序（#45）
     lock/                       #   PIN 锁屏与门卫
-test/                           # 444 个单测 + Widget 测试
+test/                           # 478 个单测 + Widget 测试
 test/architecture/              #   ⚠️ 模块边界扫描：越界访问他人表 / import di.dart / core 反向依赖（#46）
+test/fixtures/schema_v{1,2}.sql #   迁移测试用的真实 DDL 夹具（新增 migration 时补一份，不要改旧的）
 integration_test/money_paths_test.dart   # ⚠️ 13 条碰钱路径，只允许这一个文件（见铁律 6）
 docs/{ai-changelog,troubleshooting,issues-backlog,money-paths-coverage}.md
 wiki/                           # 需求与流程的唯一权威来源（GitHub wiki 的副本）
@@ -133,7 +141,7 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 
 - 最新 Release **v1.0.0**（2026-10-31，M1–M4 能力封板版，代码与 v0.4.0 完全一致）：
   `app-release.apk` 58.0 MB + `worthtrack-linux-x64.tar.gz` 19.5 MB
-- 测试基线：**444 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界）
+- 测试基线：**478 个单测/Widget + 13 条集成测试**（299 为 v0.4.0 基线，+17 模块契约、+9 schema v2 迁移/备份、+56 launcher/路由/模块状态、+42 模块管理/清理/路由门禁、+21 架构边界、+34 notes 数据层/schema v3/模块/页面）
 
 ---
 
@@ -219,7 +227,8 @@ scripts/                        # 32 个流水线/环境脚本，见 §9
 | 序 | 任务 | 验收标准 |
 |---|---|---|
 | 1 | #47 `notes` 表 + DAO + 仓储 | 新表登记进 `ownedTables` 与 `knownTables`（漏了架构测试会红）；模块可独立停用 |
-| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | 走模块自己的 `routes`，不碰 finance 任何表 |
+| 1 | #47 `notes` 表 + DAO + 仓储 | ✅ 已完成：schema v3（只加表）、`ownedTables`/`knownTables` 已登记、迁移测试覆盖 v1→v3 与 v2→v3 |
+| 2 | #48 记事本页（列表 / 编辑 / 置顶 / 搜索） | 列表与编辑已在 #47 落地（模块注册必须有路由，否则 launcher 会点到 404）；#48 补置顶交互 / 搜索 / 排序打磨 |
 | 3 | #49 弱引用：从标的或账户跳到相关笔记 | 弱引用 = 存 id 不建外键，删了也不报错 |
 | 4 | #50 模块停用/清理对 notes 数据的正确性 | 「清理数据」只删 notes 自己的表，finance 一条不动 |
 
