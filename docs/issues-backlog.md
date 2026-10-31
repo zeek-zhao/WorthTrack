@@ -105,3 +105,62 @@
 
 ### [M4] docs: 用户手册与发版说明
 - wiki 增加《真机手测清单》《用户手册》《WSL 开发环境》
+
+---
+
+## v2.0 模块化工具箱（M5-M8）
+
+> 依据：wiki《需求规格-v2.0》与《模块化架构决策》（2026-10-31 grill-me 定稿）。
+> 顺序不可调：M5 全部完成前不开 M6，否则是在移动的地基上盖房子。
+
+## M5 模块化骨架（纯重构，零功能变化）
+
+### [M5] refactor: 抽出 core 共享内核与 AppModule 契约
+- `lib/core/` 收纳 money / stream_utils / 通用组件；定义 `AppModule` 与 `ModuleContext`
+- 契约字段：id / name / icon / defaultOrder / dependsOn / ownedTables / routes / settingsTiles / onEnable / onDisable / onClear
+- 静态 `const modules = [...]` 注册表，不用 build_runner
+- 模块禁止 import `di.dart`，只经 `ModuleContext` 取依赖
+
+### [M5] refactor: finance 模块整体迁入 lib/modules/finance/
+- `git mv` 保留历史 → 改 import → format/analyze/test 三关全绿
+- **验收：测试数与迁移前精确相等，提交内不得出现 `feat:`**
+
+### [M5] feat: schema v2 —— module_state 表与首次 onUpgrade
+- 本项目第一次写 migration：schemaVersion 1 → 2
+- 迁移测试：造 v1 库 → 升级 → 逐表比对数据无损
+- module_state：模块 id / 是否启用 / launcher 排序 / 首次启用时间（随备份走）
+
+### [M5] feat: launcher 首页与 go_router 导航
+- `StatefulShellRoute.indexedStack`，每模块一个 branch，各自独立返回栈
+- launcher：模块九宫格 + 常驻「记一笔 / 记一条」
+- 冷启动恢复上次模块，30 分钟超时回 launcher
+- 注意：这是对 `home_page.dart` 五个硬编码 tab 的破坏性重构
+
+### [M5] feat: 模块管理页与设置页拆分
+- 启用 / 停用 / 清理数据 / 排序四个动作；停用与清理必须是两个独立入口
+- 设置页拆成 core 系统设置（PIN / 备份恢复 / 模块管理）+ 各模块 `settingsTiles`
+- **硬约束**：停用 finance 后仍能进入模块管理页重新启用（防死锁）
+
+### [M5] test: 架构测试守住模块边界
+- 禁止跨模块直接访问他人表（按 `ownedTables` 校验）
+- 禁止模块 import `di.dart` / 他人 DAO
+- `ownedTables` 必须与 `@DriftDatabase(tables:)` 中的真实表一一对应
+
+## M6 记事本
+
+### [M6] feat: notes 表 + DAO + 仓储
+### [M6] feat: 记事本页（列表 / 编辑 / 置顶 / 搜索）
+### [M6] feat: 弱引用（refType + refId，无外键）——从标的或账户跳到相关笔记
+### [M6] test: 模块停用/清理对 notes 数据的正确性
+
+## M7 关注与提醒
+
+### [M7] feat: watchlist_items 表 + 自选列表（已有持仓自动并入，可单独隐藏）
+### [M7] feat: 阈值提醒——目标价上穿/下穿、涨跌幅超 N%，前台轮询 + 应用内提醒条
+### [M7] test: 提醒去重（同一标的同一阈值当日只提醒一次）；断网时静默降级
+
+## M8 游戏与发版
+
+### [M8] feat: game 模块——一个最小离线小游戏（无网络/无资源包/无内购）
+### [M8] test: 新增模块成本验证——新增 game 只允许改注册表一行 + 新目录
+### [M8] docs: 用户手册与真机手测清单更新、v2.0.0 发版说明
